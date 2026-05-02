@@ -10,7 +10,7 @@ class RealtimeSessionController extends Controller
     {
         $response = Http::withToken(config('services.openai.key'))
             ->post('https://api.openai.com/v1/realtime/sessions', [
-                'model' => 'gpt-realtime-1.5',
+                'model' => 'gpt-4o-realtime-preview',
                 'modalities' => ['text'],
                 'instructions' => '',
                 'input_audio_format' => 'pcm16',

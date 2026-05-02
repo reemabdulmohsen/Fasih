@@ -1,18 +1,37 @@
-import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
 import TopBar from '@/Components/TopBar';
 import { TOPICS } from '@/data/topics';
+import type { Topic } from '@/types/fasih';
 
 const SESSION_ID = 'A3B9F2';
 
 export default function Home() {
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [loading, setLoading] = useState(true);
     const [topicIdx, setTopicIdx] = useState(0);
-    const topic = TOPICS[topicIdx];
-    const total = TOPICS.length;
+
+    useEffect(() => {
+        fetch('/api/topics')
+            .then(r => r.json())
+            .then((data: Topic[]) => {
+                if (Array.isArray(data) && data.length > 0) {
+                    setTopics(data);
+                } else {
+                    setTopics(TOPICS);
+                }
+            })
+            .catch(() => setTopics(TOPICS))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const topic = topics[topicIdx];
+    const total = topics.length;
 
     const shuffle = () => {
+        if (total <= 1) return;
         let next = topicIdx;
-        while (next === topicIdx) next = Math.floor(Math.random() * TOPICS.length);
+        while (next === topicIdx) next = Math.floor(Math.random() * total);
         setTopicIdx(next);
     };
 
@@ -20,14 +39,32 @@ export default function Home() {
         <>
             <Head title="فصيح" />
 
-            <div style={{
+            <div className="page-wrap" style={{
                 maxWidth: 1440, margin: '0 auto',
                 minHeight: '100vh', padding: '28px 36px 60px',
             }}>
                 <TopBar step="topic" session={SESSION_ID} />
 
-                <div style={{ animation: 'fadeUp 0.5s var(--e-out) both' }}>
+                {loading && (
                     <div style={{
+                        maxWidth: 880, margin: '40px auto',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        justifyContent: 'center', gap: 16, padding: '80px 0',
+                        color: 'var(--ink-mute)', fontFamily: 'var(--f-ar)', fontSize: 15,
+                    }}>
+                        <div style={{
+                            width: 32, height: 32, borderRadius: '50%',
+                            border: '2px solid var(--line)',
+                            borderTopColor: 'var(--accent)',
+                            animation: 'spin 0.8s linear infinite',
+                        }} />
+                        جارٍ توليد المواضيع...
+                    </div>
+                )}
+
+                {!loading && topic && (
+                <div style={{ animation: 'fadeUp 0.5s var(--e-out) both' }}>
+                    <div className="home-card" style={{
                         maxWidth: 880, margin: '40px auto',
                         padding: '64px 56px',
                         background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-raised) 100%)',
@@ -81,7 +118,7 @@ export default function Home() {
                             }}>
                                 موضوع اليوم
                             </div>
-                            <h1 dir="rtl" style={{
+                            <h1 dir="rtl" className="home-title" style={{
                                 fontFamily: 'var(--f-ar)', fontSize: 44, fontWeight: 500,
                                 lineHeight: 1.35, color: 'var(--ink)',
                                 margin: 0, letterSpacing: '-0.005em',
@@ -97,7 +134,7 @@ export default function Home() {
                         }}>
                             أسئلة تساعدك
                         </div>
-                        <div style={{
+                        <div className="hints-grid" style={{
                             display: 'grid', gridTemplateColumns: '1fr 1fr',
                             gap: 10, marginBottom: 48,
                         }}>
@@ -125,7 +162,7 @@ export default function Home() {
                         </div>
 
                         {/* Actions */}
-                        <div style={{
+                        <div className="home-actions" style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             gap: 12, paddingTop: 28, borderTop: '1px solid var(--line)',
                         }}>
@@ -135,18 +172,25 @@ export default function Home() {
                                 </svg>
                                 موضوع آخر
                             </button>
-                            <button style={primaryBtnStyle}>
+                            <button onClick={() => {
+                                sessionStorage.setItem('fasih_topic', JSON.stringify(topic));
+                                router.visit('/record');
+                            }} style={primaryBtnStyle}>
                                 ابدأ التسجيل
                             </button>
                         </div>
                     </div>
                 </div>
+                )}
             </div>
 
             <style>{`
                 @keyframes fadeUp {
                     from { opacity: 0; transform: translateY(8px); }
                     to   { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </>

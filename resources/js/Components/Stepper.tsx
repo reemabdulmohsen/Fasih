@@ -1,11 +1,9 @@
 export type StepId = 'topic' | 'record' | 'report' | 'review' | 'final';
 
 const STEPS: { id: StepId; ar: string }[] = [
-    { id: 'topic',  ar: 'الموضوع'  },
-    { id: 'record', ar: 'التسجيل'  },
     { id: 'report', ar: 'التقرير'  },
-    { id: 'review', ar: 'المتابعة' },
-    { id: 'final',  ar: 'النهائي'  },
+    { id: 'record', ar: 'التسجيل'  },
+    { id: 'topic',  ar: 'الموضوع'  },
 ];
 
 export default function Stepper({ step }: { step: StepId }) {

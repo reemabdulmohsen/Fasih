@@ -1,14 +1,24 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import TopBar from '@/Components/TopBar';
 import Ring from '@/Components/Ring';
 import { TOPICS } from '@/data/topics';
+import { analyzeSpeech } from '@/lib/analyzeSpeech';
+import type { Topic } from '@/types/fasih';
 
 const SESSION_ID = 'A3B9F2';
 const DURATION   = 120;
 const BARS       = 22;
 
 type MicState = 'checking' | 'available' | 'unavailable';
+
+function loadTopic(): Topic {
+    try {
+        const raw = sessionStorage.getItem('fasih_topic');
+        if (raw) return JSON.parse(raw) as Topic;
+    } catch { /* ignore */ }
+    return TOPICS[0];
+}
 
 // Runs inside an AudioWorklet — converts Float32 mic samples to Int16 PCM
 const PCM_PROCESSOR = `
@@ -37,7 +47,7 @@ function toBase64(buffer: ArrayBuffer): string {
 }
 
 export default function Record() {
-    const topic = TOPICS[0];
+    const topic = loadTopic();
 
     const [timeLeft, setTimeLeft]     = useState(DURATION);
     const [running, setRunning]       = useState(false);
@@ -47,6 +57,8 @@ export default function Record() {
     const [levels, setLevels]         = useState(() => Array<number>(BARS).fill(4));
     const [finished, setFinished]     = useState(false);
     const [connecting, setConnecting] = useState(false);
+    const [analyzing, setAnalyzing]   = useState(false);
+    const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
     const streamRef        = useRef<MediaStream | null>(null);
     const wsRef            = useRef<WebSocket | null>(null);
@@ -57,6 +69,9 @@ export default function Record() {
     const levelRef         = useRef<ReturnType<typeof setInterval> | null>(null);
     const pausedRef        = useRef(false);
     const transcriptMapRef = useRef<Map<string, string>>(new Map());
+    const typedValueRef    = useRef('');
+    const silenceStartRef  = useRef<number | null>(null);
+    const longPausesRef    = useRef(0);
 
     // ── Mic permission ────────────────────────────────────────────────
     useEffect(() => {
@@ -88,6 +103,44 @@ export default function Record() {
         }, 1000);
         return () => clearInterval(tickRef.current!);
     }, [running]);
+
+    // ── Analyze then navigate when finished ──────────────────────────
+    useEffect(() => {
+        if (!finished) return;
+        let cancelled = false;
+        const run = async () => {
+            // Wait for the WebSocket to deliver the final transcription event
+            await new Promise(r => setTimeout(r, 3000));
+            if (cancelled) return;
+            setAnalyzing(true);
+            const text = micState === 'unavailable'
+                ? typedValueRef.current
+                : buildTranscript();
+            if (!text.trim()) {
+                if (!cancelled) {
+                    setAnalyzing(false);
+                    setAnalyzeError('لم يُسجَّل أي نصّ. تأكّد من أن الميكروفون يعمل وحاول من جديد.');
+                }
+                return;
+            }
+            try {
+                const analysis = await analyzeSpeech(text, longPausesRef.current, topic.ar);
+                if (!cancelled) {
+                    sessionStorage.setItem('fasih_analysis', JSON.stringify(analysis));
+                    router.visit('/report');
+                }
+            } catch (e) {
+                console.error('Analysis failed:', e);
+                if (!cancelled) {
+                    setAnalyzing(false);
+                    setAnalyzeError('فشل التحليل. تحقّق من الاتصال بالإنترنت أو مفتاح API وحاول مجدّداً.');
+                }
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [finished]);
 
     // ── Waveform ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -137,6 +190,23 @@ export default function Record() {
             const ws = wsRef.current;
             if (ws?.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: toBase64(e.data.pcm) }));
+
+            // Silence detection: compute RMS of Int16 samples
+            const samples = new Int16Array(e.data.pcm);
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+            const rms = Math.sqrt(sumSq / samples.length);
+            const now = Date.now();
+            if (rms < 800) {
+                // Silent frame
+                if (silenceStartRef.current === null) silenceStartRef.current = now;
+                else if (now - silenceStartRef.current >= 1500) {
+                    longPausesRef.current += 1;
+                    silenceStartRef.current = null; // reset so we don't double-count
+                }
+            } else {
+                silenceStartRef.current = null;
+            }
         };
 
         source.connect(worklet);
@@ -196,8 +266,9 @@ export default function Record() {
         pausedRef.current = true;
         const ws = wsRef.current;
         if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-            // Keep WS open briefly to receive the final transcription event
+            // server_vad commits the buffer automatically — skip manual commit to
+            // avoid the "buffer too small" error when the buffer is already empty.
+            // Keep WS open briefly to receive the final transcription event.
             setTimeout(() => ws.close(), 3000);
         }
         sourceNodeRef.current?.disconnect();
@@ -216,6 +287,8 @@ export default function Record() {
                 pausedRef.current = false;
                 transcriptMapRef.current.clear();
                 setTranscript('');
+                silenceStartRef.current = null;
+                longPausesRef.current = 0;
                 connectRealtime();
             } else {
                 // Resume from pause: WS already open, just unpause
@@ -249,15 +322,17 @@ export default function Record() {
     const wordSource = micState === 'unavailable' ? typedValue : transcript;
     const wordCount  = wordSource.trim().split(/\s+/).filter(Boolean).length;
 
-    const timerLabel = running
-        ? 'جارٍ التسجيل'
-        : connecting
-            ? 'جارٍ الاتصال…'
-            : timeLeft === DURATION
-                ? 'جاهز'
-                : finished
-                    ? 'انتهى'
-                    : 'متوقّف';
+    const timerLabel = analyzing
+        ? 'جارٍ التحليل…'
+        : running
+            ? 'جارٍ التسجيل'
+            : connecting
+                ? 'جارٍ الاتصال…'
+                : timeLeft === DURATION
+                    ? 'جاهز'
+                    : finished
+                        ? 'انتهى'
+                        : 'متوقّف';
 
     const micDotColor = micState === 'unavailable' ? 'var(--err)' : 'var(--fix)';
     const micLabel =
@@ -269,14 +344,14 @@ export default function Record() {
         <>
             <Head title="التسجيل — فصيح" />
 
-            <div style={{
+            <div className="page-wrap" style={{
                 maxWidth: 1440, margin: '0 auto',
                 minHeight: '100vh', padding: '28px 36px 60px',
             }}>
                 <TopBar step="record" session={SESSION_ID} />
 
                 <div style={{ animation: 'fadeUp 0.5s var(--e-out) both' }}>
-                    <div style={{
+                    <div className="record-grid" style={{
                         display: 'grid', gridTemplateColumns: '1.15fr 1fr',
                         gap: 28, alignItems: 'start',
                     }}>
@@ -361,7 +436,7 @@ export default function Record() {
                                     {!finished && (
                                         <button onClick={finishNow} style={ghostBtnStyle}>إنهاء الآن</button>
                                     )}
-                                    {finished && (
+                                    {finished && !analyzing && (
                                         <div style={{
                                             fontFamily: 'var(--f-ar)', fontSize: 14,
                                             color: 'var(--fix)', display: 'flex', alignItems: 'center', gap: 6,
@@ -369,11 +444,34 @@ export default function Record() {
                                             ✓ تمّ التسجيل
                                         </div>
                                     )}
+                                    {analyzing && (
+                                        <div style={{
+                                            fontFamily: 'var(--f-ar)', fontSize: 14,
+                                            color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6,
+                                        }}>
+                                            <span style={{ animation: 'pulse 1.2s ease-in-out infinite' }}>●</span>
+                                            جارٍ التحليل…
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
+                            {/* Analyze error */}
+                            {analyzeError && (
+                                <div dir="rtl" style={{
+                                    fontFamily: 'var(--f-ar)', fontSize: 13,
+                                    color: 'var(--err)', marginTop: 16,
+                                    padding: '10px 14px', borderRadius: 8,
+                                    border: '1px solid var(--err)',
+                                    background: 'rgba(220,53,69,0.07)',
+                                    textAlign: 'center',
+                                }}>
+                                    {analyzeError}
+                                </div>
+                            )}
+
                             {/* Mic status bar */}
-                            <div style={{
+                            <div className="mic-status-bar" style={{
                                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                 padding: '10px 14px',
                                 background: 'rgba(255,255,255,0.02)',
@@ -417,7 +515,7 @@ export default function Record() {
                                 <textarea
                                     dir="rtl"
                                     value={typedValue}
-                                    onChange={e => setTypedValue(e.target.value)}
+                                    onChange={e => { setTypedValue(e.target.value); typedValueRef.current = e.target.value; }}
                                     placeholder="الميكروفون غير متاح — اكتب إجابتك هنا بالعربيّة…"
                                     autoFocus
                                     style={{

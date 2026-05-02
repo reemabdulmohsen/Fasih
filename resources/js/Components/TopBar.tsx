@@ -7,7 +7,7 @@ interface TopBarProps {
 
 export default function TopBar({ step, session }: TopBarProps) {
     return (
-        <div style={{
+        <div className="topbar" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             paddingBottom: 24, borderBottom: '1px solid var(--line)', marginBottom: 36,
         }}>
@@ -33,9 +33,11 @@ export default function TopBar({ step, session }: TopBarProps) {
                 </div>
             </div>
 
-            <Stepper step={step} />
+            <div className="topbar-stepper">
+                <Stepper step={step} />
+            </div>
 
-            <div style={{
+            <div className="topbar-session" style={{
                 fontFamily: 'var(--f-mono)', fontSize: 11,
                 color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase',
             }}>

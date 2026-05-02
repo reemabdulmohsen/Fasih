@@ -50,3 +50,90 @@ body {
 }
 
 ::selection { background: var(--accent); color: #000; }
+
+/* ── Responsive layout ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    .page-wrap {
+        padding: 16px 16px 40px !important;
+    }
+    .report-hero-title {
+        font-size: 26px !important;
+    }
+    .home-card {
+        padding: 28px 20px !important;
+        margin: 16px auto !important;
+    }
+    .home-title {
+        font-size: 26px !important;
+    }
+    .hints-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .home-actions {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .home-actions button {
+        justify-content: center !important;
+    }
+    .record-grid {
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+    }
+    .report-hero {
+        flex-direction: column-reverse !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+        padding: 16px 8px 20px !important;
+    }
+    .report-hero-ring {
+        align-self: center !important;
+    }
+    .report-metrics {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    .report-metric-item {
+        padding: 12px 12px !important;
+    }
+    .report-metric-item:nth-child(odd) {
+        border-inline-start: none !important;
+    }
+    .report-metric-item:nth-child(3),
+    .report-metric-item:nth-child(4) {
+        border-top: 1px solid var(--line);
+    }
+    .report-cards {
+        grid-template-columns: 1fr !important;
+    }
+    .topbar-session {
+        display: none !important;
+    }
+    .mic-status-bar {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar-stepper {
+        display: none !important;
+    }
+    .topbar {
+        flex-wrap: wrap !important;
+        gap: 12px !important;
+    }
+    .home-title {
+        font-size: 21px !important;
+    }
+    .report-metrics {
+        grid-template-columns: 1fr !important;
+    }
+    .report-metric-item {
+        border-inline-start: none !important;
+        border-top: 1px solid var(--line) !important;
+    }
+    .report-metric-item:first-child {
+        border-top: none !important;
+    }
+}
