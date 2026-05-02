@@ -11,26 +11,36 @@ export default function Stepper({ step }: { step: StepId }) {
 
     return (
         <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            fontFamily: 'var(--f-mono)', fontSize: 11,
-            color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.16em',
+            display: 'flex', alignItems: 'center', gap: 8,
+            fontFamily: 'var(--f-ar)', fontSize: 13,
+            color: 'var(--ink-mute)',
         }}>
             {STEPS.map((s, i) => (
                 <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{
-                        display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                        background: i === idx ? 'var(--accent)' : i < idx ? 'var(--ink-dim)' : 'var(--line-2)',
-                        transition: 'background 0.3s',
-                    }} />
-                    <span style={{
-                        color: i === idx ? 'var(--ink)' : i < idx ? 'var(--ink-dim)' : 'var(--ink-faint)',
-                        fontFamily: 'var(--f-ar)', fontSize: 13,
-                        letterSpacing: 0, textTransform: 'none',
-                    }}>
-                        {s.ar}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{
+                            display: 'inline-block',
+                            width: i === idx ? 20 : 6,
+                            height: 6,
+                            borderRadius: 3,
+                            background: i === idx
+                                ? 'var(--accent)'
+                                : i < idx
+                                    ? 'var(--ink-mute)'
+                                    : 'var(--line-2)',
+                            boxShadow: i === idx ? '0 0 8px var(--accent-glow)' : 'none',
+                            transition: 'width 0.35s var(--e-spring), background 0.3s, box-shadow 0.3s',
+                        }} />
+                        <span style={{
+                            color: i === idx ? 'var(--ink)' : i < idx ? 'var(--ink-mute)' : 'var(--ink-faint)',
+                            transition: 'color 0.3s',
+                            letterSpacing: 0,
+                        }}>
+                            {s.ar}
+                        </span>
                     </span>
                     {i < STEPS.length - 1 && (
-                        <span style={{ color: 'var(--ink-faint)' }}>—</span>
+                        <span style={{ color: 'var(--line-2)', fontSize: 11 }}>·</span>
                     )}
                 </span>
             ))}

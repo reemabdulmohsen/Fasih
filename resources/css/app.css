@@ -1,30 +1,63 @@
-@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design Tokens (light mode default) ────────────────────── */
 :root {
-    --bg:        #0b0b0c;
-    --bg-raised: #111113;
-    --bg-card:   #17171a;
-    --bg-card-2: #1c1c20;
-    --line:      #232327;
-    --line-2:    #2d2d33;
-    --ink:       #f4f1ea;
-    --ink-dim:   #b8b4ac;
-    --ink-mute:  #76736c;
-    --ink-faint: #4a4842;
-    --accent:    #f0b64a;
-    --accent-2:  #d99a3a;
+    /* Backgrounds */
+    --bg:        #f0f6ff;
+    --bg-raised: #e6efff;
+    --bg-card:   #ffffff;
+    --bg-card-2: #eaf2ff;
+    /* Borders */
+    --line:      #ccd9f0;
+    --line-2:    #b5c8e8;
+    /* Text */
+    --ink:       #0f1829;
+    --ink-dim:   #1e3057;
+    --ink-mute:  #4d6490;
+    --ink-faint: #9aaac8;
+    /* Accent — blue */
+    --accent:       #3b8ef3;
+    --accent-2:     #2a7de8;
+    --accent-dim:   #1a6dd0;
+    --accent-glow:  rgba(59, 142, 243, 0.22);
+    --accent-glow2: rgba(59, 142, 243, 0.08);
+    /* Status */
     --err:       #ef6a5c;
-    --err-bg:    rgba(239,106,92,0.12);
-    --fix:       #7cc08a;
-    --fix-bg:    rgba(124,192,138,0.14);
-    --f-ar:      'Readex Pro', 'Tajawal', sans-serif;
-    --f-en:      'IBM Plex Sans', system-ui, sans-serif;
-    --f-mono:    'IBM Plex Mono', ui-monospace, monospace;
-    --e-out:     cubic-bezier(.2,.7,.2,1);
+    --err-bg:    rgba(239, 106, 92, 0.12);
+    --fix:       #3a9e89;
+    --fix-bg:    rgba(58, 158, 137, 0.12);
+    /* Fonts */
+    --f-ar:   'Readex Pro', 'Tajawal', sans-serif;
+    --f-en:   'IBM Plex Sans', system-ui, sans-serif;
+    --f-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    /* Easing */
+    --e-out:    cubic-bezier(.2, .7, .2, 1);
+    --e-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────── */
+[data-theme="dark"] {
+    --bg:        #070b14;
+    --bg-raised: #0d1220;
+    --bg-card:   #0f1624;
+    --bg-card-2: #141c2e;
+    --line:      #1c2a3f;
+    --line-2:    #253348;
+    --ink:       #e8eaf6;
+    --ink-dim:   #8b9cc0;
+    --ink-mute:  #4d5f7a;
+    --ink-faint: #2b3851;
+    --accent:       #4d9ef5;
+    --accent-2:     #3b8ef3;
+    --accent-dim:   #2a7de8;
+    --accent-glow:  rgba(77, 158, 245, 0.25);
+    --accent-glow2: rgba(77, 158, 245, 0.09);
+    --fix:       #5ab8a0;
+    --fix-bg:    rgba(90, 184, 160, 0.14);
 }
 
 * { box-sizing: border-box; }
@@ -44,20 +77,131 @@ html, body {
 
 body {
     background:
-        radial-gradient(ellipse at 50% -10%, rgba(240,182,74,0.06), transparent 60%),
-        radial-gradient(ellipse at 50% 120%, rgba(240,182,74,0.03), transparent 60%),
+        radial-gradient(ellipse at 15% 0%,   rgba(59, 142, 243, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%,  rgba(42, 125, 232, 0.07) 0%, transparent 55%),
         var(--bg);
 }
 
-::selection { background: var(--accent); color: #000; }
+[data-theme="dark"] body {
+    background:
+        radial-gradient(ellipse at 15% 0%,  rgba(59, 142, 243, 0.09) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(42, 125, 232, 0.07) 0%, transparent 55%),
+        var(--bg);
+}
 
-/* ── Responsive layout ──────────────────────────────────────── */
+::selection { background: var(--accent); color: #fff; }
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+}
+@keyframes glowPulse {
+    0%, 100% { filter: drop-shadow(0 0 0px var(--accent-glow)); }
+    50%       { filter: drop-shadow(0 0 10px var(--accent-glow)); }
+}
+@keyframes recordGlow {
+    0%, 100% { box-shadow: 0 0 0 0   var(--accent-glow); }
+    50%       { box-shadow: 0 0 24px 6px var(--accent-glow); }
+}
+@keyframes waveBar {
+    0%, 100% { transform: scaleY(0.4); }
+    50%       { transform: scaleY(1); }
+}
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes shimmer {
+    from { background-position: -200% center; }
+    to   { background-position:  200% center; }
+}
+
+/* ── Speaking Studio (Record page) animations ─────────────── */
+@keyframes blob {
+    0%, 100% { border-radius: 50%; }
+    25%  { border-radius: 60% 40% 55% 45% / 55% 45% 60% 40%; }
+    50%  { border-radius: 45% 55% 50% 50% / 45% 55% 50% 50%; }
+    75%  { border-radius: 55% 45% 45% 55% / 55% 45% 45% 55%; }
+}
+@keyframes pulseRing {
+    0%   { transform: scale(0.9); opacity: 0.7; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes wordIn {
+    from { opacity: 0; transform: translateY(6px); filter: blur(4px); }
+    to   { opacity: 1; transform: translateY(0);   filter: blur(0);   }
+}
+@keyframes hintIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Shared utilities ──────────────────────────────────────── */
+.glow-accent {
+    filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+.card-glass {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Speaking Studio: hide side rails on narrow viewports ──── */
+@media (max-width: 1200px) {
+    .studio-rail { display: none !important; }
+}
+
+/* ── Record page responsive ─────────────────────────────────── */
+@media (max-width: 900px) {
+    .record-header  { padding: 14px 20px !important; }
+    .record-nav     { display: none !important; }
+    .record-streak  { display: none !important; }
+}
+@media (max-width: 600px) {
+    .record-footer-hints { display: none !important; }
+    .record-controls {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    .record-controls-primary {
+        order: -1 !important;
+        grid-column: 1 / -1 !important;
+        min-width: unset !important;
+        width: 100% !important;
+        justify-self: stretch !important;
+    }
+    .record-controls > *:first-child,
+    .record-controls > *:last-child {
+        justify-self: stretch !important;
+    }
+    .record-controls > *:first-child button,
+    .record-controls > *:last-child button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+/* ── Responsive layout ─────────────────────────────────────── */
 @media (max-width: 768px) {
     .page-wrap {
-        padding: 16px 16px 40px !important;
+        padding: 16px 16px 20px !important;
     }
     .report-hero-title {
-        font-size: 26px !important;
+        font-size: 24px !important;
     }
     .home-card {
         padding: 28px 20px !important;
@@ -76,15 +220,12 @@ body {
     .home-actions button {
         justify-content: center !important;
     }
-    .record-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px !important;
-    }
+    /* record-grid removed — new single-column layout */
     .report-hero {
         flex-direction: column-reverse !important;
         align-items: flex-start !important;
         gap: 16px !important;
-        padding: 16px 8px 20px !important;
+        padding: 16px 0 20px !important;
     }
     .report-hero-ring {
         align-self: center !important;
@@ -108,11 +249,6 @@ body {
     .topbar-session {
         display: none !important;
     }
-    .mic-status-bar {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 6px !important;
-    }
 }
 
 @media (max-width: 480px) {
@@ -121,10 +257,10 @@ body {
     }
     .topbar {
         flex-wrap: wrap !important;
-        gap: 12px !important;
+        gap: 10px !important;
     }
     .home-title {
-        font-size: 21px !important;
+        font-size: 22px !important;
     }
     .report-metrics {
         grid-template-columns: 1fr !important;
@@ -135,5 +271,66 @@ body {
     }
     .report-metric-item:first-child {
         border-top: none !important;
+    }
+}
+
+/* ── Mobile UX improvements ─────────────────────────────── */
+
+/* Desktop defaults */
+.home-sticky-bar { display: none; }
+
+@media (max-width: 768px) {
+    /* Compact topbar — saves ~24px on every page */
+    .topbar {
+        padding-bottom: 12px !important;
+        margin-bottom: 16px !important;
+    }
+
+    /* Welcome: full-width CTA */
+    .welcome-cta-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 18px 24px !important;
+        border-radius: 14px !important;
+    }
+
+    /* Welcome: feature chips are noise on small screens */
+    .welcome-chips {
+        display: none !important;
+    }
+
+    /* Home: hide in-card start button, primary action lives in sticky bar */
+    .home-start-btn-card { display: none !important; }
+
+    /* Home: sticky start button always visible at bottom */
+    .home-sticky-bar {
+        display: block;
+        position: sticky;
+        bottom: 0;
+        padding: 10px 0 6px;
+        /* fade out background above the bar */
+        background: linear-gradient(to bottom, transparent 0%, var(--bg) 35%);
+    }
+    .home-sticky-bar button {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 17px 24px !important;
+        font-size: 17px !important;
+        border-radius: 14px !important;
+    }
+
+    /* Home: shuffle button fills the row on its own */
+    .home-actions {
+        flex-direction: row !important;
+        align-items: center !important;
+    }
+    .home-shuffle-btn {
+        flex: 1 !important;
+        justify-content: center !important;
+    }
+
+    /* Report: tighter hero spacing */
+    .report-hero {
+        padding: 12px 0 18px !important;
     }
 }
