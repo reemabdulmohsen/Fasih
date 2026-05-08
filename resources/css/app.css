@@ -195,6 +195,52 @@ body {
     }
 }
 
+/* ── Report page layout classes ────────────────────────────── */
+.report-header {
+    padding: 22px 36px;
+}
+
+.report-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 24px 72px;
+}
+
+.report-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    padding: 8px 0 32px;
+}
+
+.report-hero-ring {
+    width: 138px;
+    height: 138px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.report-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: inherit;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.report-metric-item {
+    padding: 18px 20px;
+}
+
+.report-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
 /* ── Responsive layout ─────────────────────────────────────── */
 @media (max-width: 768px) {
     .page-wrap {

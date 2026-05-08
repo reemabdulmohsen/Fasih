@@ -145,10 +145,9 @@ export default function Report() {
     return shell(
         <>
             {/* ── Header ── */}
-            <header style={{
+            <header className="report-header" style={{
                 display: 'grid', gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
-                padding: '22px 36px',
                 borderBottom: `1px solid ${T.line}`,
                 background: `oklch(99% 0.003 280 / 0.88)`,
                 backdropFilter: 'blur(12px)',
@@ -183,16 +182,10 @@ export default function Report() {
             </header>
 
             {/* ── Content ── */}
-            <div style={{
-                maxWidth: 900, margin: '0 auto',
-                padding: '32px 24px 72px',
-            }}>
+            <div className="report-content">
 
                 {/* ── Hero ── */}
-                <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: 32, padding: '8px 0 32px',
-                }}>
+                <div className="report-hero">
                     <div style={{ flex: 1 }}>
                         <div style={{
                             fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
@@ -219,8 +212,8 @@ export default function Report() {
                     </div>
 
                     {/* Overall ring */}
-                    <div style={{ width: 138, height: 138, flexShrink: 0, position: 'relative' }}>
-                        <svg width={138} height={138} style={{
+                    <div className="report-hero-ring">
+                        <svg width="100%" height="100%" viewBox="0 0 138 138" style={{
                             transform: 'rotate(-90deg)',
                             filter: `drop-shadow(0 0 16px ${T.accent}55)`,
                         }}>
@@ -256,14 +249,11 @@ export default function Report() {
                 </div>
 
                 {/* ── Metrics strip ── */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+                <div className="report-metrics" style={{
                     background: T.surface, border: `1px solid ${T.line}`,
-                    borderRadius: 16, overflow: 'hidden', marginBottom: 24,
                 }}>
                     {dimensions.map((d, i) => (
-                        <div key={i} style={{
-                            padding: '18px 20px',
+                        <div key={i} className="report-metric-item" style={{
                             borderInlineStart: i === 0 ? 'none' : `1px solid ${T.line}`,
                         }}>
                             <div style={{
@@ -309,10 +299,7 @@ export default function Report() {
                 </div>
 
                 {/* ── Detail cards ── */}
-                <div style={{
-                    display: 'grid', gridTemplateColumns: '1fr 1fr',
-                    gap: 16, marginBottom: 20,
-                }}>
+                <div className="report-cards">
                     <DetailCard title="الحجة" score={analysis.hujja.score} explanation={analysis.hujja.explanation}>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
                             <CheckBadge label="فكرة مركزية" checked={analysis.hujja.claim_identified} />
