@@ -4,7 +4,7 @@ import { TOPICS } from '@/data/topics';
 import { analyzeSpeech } from '@/lib/analyzeSpeech';
 import type { Topic } from '@/types/fasih';
 
-const SESSION_ID = 'A3B9F2';
+
 const DURATION   = 120;
 const BARS       = 40;
 
@@ -14,21 +14,21 @@ const HINTS = [
     { ar: 'اختم بفكرة جامعة',            en: 'Wrap with a closing thought' },
 ];
 
-// Design tokens — lime-accent dark theme
+// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(14% 0.012 280)',
-    surface:   'oklch(20% 0.012 280)',
-    surface2:  'oklch(24% 0.012 280)',
-    line:      'oklch(28% 0.012 280)',
-    line2:     'oklch(34% 0.012 280)',
-    ink:       'oklch(97% 0.005 90)',
-    ink2:      'oklch(78% 0.01 90)',
-    ink3:      'oklch(58% 0.01 90)',
-    accent:    'oklch(92% 0.22 125)',
-    accentInk: 'oklch(14% 0.01 280)',
-    ok:        'oklch(80% 0.18 150)',
-    warn:      'oklch(80% 0.16 70)',
-    danger:    'oklch(70% 0.2 25)',
+    bg:        'oklch(99% 0.003 280)',
+    surface:   'oklch(96% 0.005 280)',
+    surface2:  'oklch(93% 0.006 280)',
+    line:      'oklch(88% 0.008 280)',
+    line2:     'oklch(82% 0.008 280)',
+    ink:       'oklch(14% 0.012 280)',
+    ink2:      'oklch(32% 0.01 280)',
+    ink3:      'oklch(52% 0.01 280)',
+    accent:    'oklch(55% 0.22 255)',
+    accentInk: 'oklch(99% 0.003 280)',
+    ok:        'oklch(45% 0.18 150)',
+    warn:      'oklch(55% 0.16 70)',
+    danger:    'oklch(50% 0.2 25)',
 } as const;
 
 type MicState    = 'checking' | 'available' | 'unavailable';
@@ -70,20 +70,16 @@ function toBase64(buffer: ArrayBuffer): string {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function VoiceOrb({ state, level, size = 240 }: { state: StudioState; level: number; size?: number }) {
-    const contSize   = size + 40;
-    const scale      = state === 'recording' ? 1 + level * 0.18 : 1;
-    const isRec      = state === 'recording';
-    const isPaused   = state === 'paused';
-    const isDone     = state === 'finished' || state === 'analyzing';
-
+// Pulse rings only — rendered outside the clipped circle so they bleed beyond the edge
+function VoiceOrbPulse({ state, size = 240 }: { state: StudioState; size?: number }) {
+    const contSize = size + 40;
+    const isRec    = state === 'recording';
     return (
         <div style={{
             position: 'absolute', inset: '50% auto auto 50%',
             transform: 'translate(-50%, -50%)',
             width: contSize, height: contSize, pointerEvents: 'none',
         }}>
-            {/* Pulse rings — only while recording */}
             <div style={{ position: 'absolute', inset: 0 }}>
                 {isRec && [0, 1, 2].map(i => (
                     <span key={i} style={{
@@ -95,23 +91,32 @@ function VoiceOrb({ state, level, size = 240 }: { state: StudioState; level: num
                     }} />
                 ))}
             </div>
+        </div>
+    );
+}
 
-            {/* Orb body */}
+// Blob + icon — fills its container, meant to sit inside the clipped inner circle
+function VoiceOrbBlob({ state, level, size }: { state: StudioState; level: number; size: number }) {
+    const scale    = state === 'recording' ? 1 + level * 0.18 : 1;
+    const isRec    = state === 'recording';
+    const isPaused = state === 'paused';
+    const isDone   = state === 'finished' || state === 'analyzing';
+    return (
+        <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
             <div style={{
-                position: 'absolute', top: '50%', left: '50%',
-                width: size, height: size,
-                transform: `translate(-50%, -50%) scale(${scale})`,
+                position: 'relative', width: size, height: size,
+                transform: `scale(${scale})`,
                 transition: 'transform 0.12s ease-out',
             }}>
                 {/* Blob */}
                 <div style={{
                     position: 'absolute', inset: 0, borderRadius: '50%',
-                    background: `radial-gradient(circle at 35% 30%, ${T.accent}f0, ${T.accent} 55%, oklch(70% 0.20 125))`,
+                    background: `radial-gradient(circle at 35% 30%, ${T.accent}f0, ${T.accent} 55%, oklch(38% 0.22 255))`,
                     animation: isPaused ? 'none' : 'blob 7s ease-in-out infinite',
                     filter: isPaused ? 'saturate(0.4) brightness(0.85)' : 'none',
                     boxShadow: [
                         `0 30px 80px -20px ${T.accent}99`,
-                        `inset 0 -20px 40px oklch(70% 0.20 125 / 0.50)`,
+                        `inset 0 -20px 40px oklch(38% 0.22 255 / 0.50)`,
                         `inset 0 20px 40px oklch(100% 0 0 / 0.30)`,
                     ].join(', '),
                 }} />
@@ -123,11 +128,7 @@ function VoiceOrb({ state, level, size = 240 }: { state: StudioState; level: num
                     opacity: state === 'idle' ? 0.4 : 0.8,
                 }} />
                 {/* Core icon */}
-                <div style={{
-                    position: 'absolute', inset: 0,
-                    display: 'grid', placeItems: 'center',
-                    color: T.accentInk,
-                }}>
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: T.accentInk }}>
                     {isDone ? (
                         <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M5 13l4 4L19 7" />
@@ -159,7 +160,7 @@ function ProgressRing({ progress, size = 420 }: { progress: number; size?: numbe
             style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
             width={size} height={size}
         >
-            <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none" />
+            <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(0,0,0,0.08)" strokeWidth={stroke} fill="none" />
             <circle
                 cx={size / 2} cy={size / 2} r={r}
                 stroke={T.accent} strokeWidth={stroke} fill="none"
@@ -186,7 +187,7 @@ function Waveform({ active, levels }: { active: boolean; levels: number[] }) {
                     flex: 1, maxWidth: 8, display: 'block',
                     height: active
                         ? `${Math.max(4, v * 52)}px`
-                        : `${8 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 14}px`,
+                        : `${4 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 2}px`,
                     background: active
                         ? `linear-gradient(180deg, ${T.accent}, ${T.accent}99)`
                         : T.line2,
@@ -548,6 +549,7 @@ export default function Record() {
     const stageSize  = isMobile ? Math.min(300, vw - 32) : 460;
     const ringSize   = stageSize - 40;
     const orbBodySize = Math.round(stageSize * 240 / 460);
+    const innerSize  = ringSize - 24; // inner bordered circle; leaves ~12px gap for the progress ring
 
     const studioState: StudioState = analyzing ? 'analyzing'
         : finished    ? 'finished'
@@ -603,7 +605,7 @@ export default function Record() {
                 {/* Grain texture */}
                 <div style={{
                     position: 'absolute', inset: 0,
-                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0)',
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.06) 1px, transparent 0)',
                     backgroundSize: '4px 4px',
                     pointerEvents: 'none', zIndex: 0,
                 }} />
@@ -615,7 +617,7 @@ export default function Record() {
                     width: 1100, height: 1100, borderRadius: '50%',
                     background: `radial-gradient(closest-side, ${T.accent}38, transparent 70%)`,
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
-                    opacity: running ? 0.55 : (finished || analyzing) ? 0.7 : 0.25,
+                    opacity: running ? 0.22 : (finished || analyzing) ? 0.28 : 0.12,
                     transition: 'opacity 0.8s ease',
                 }} />
 
@@ -626,7 +628,7 @@ export default function Record() {
                     alignItems: 'center',
                     padding: '22px 36px',
                     borderBottom: `1px solid ${T.line}`,
-                    background: `oklch(14% 0.012 280 / 0.85)`,
+                    background: `oklch(99% 0.003 280 / 0.88)`,
                     backdropFilter: 'blur(12px)',
                 }}>
                     {/* Brand */}
@@ -671,26 +673,6 @@ export default function Record() {
                             </button>
                         ))}
                     </nav>
-
-                    {/* Streak + session ID */}
-                    <div className="record-streak" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-start' }}>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            background: T.surface, border: `1px solid ${T.line}`,
-                            padding: '7px 12px', borderRadius: 999,
-                            fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                            fontSize: 13, fontWeight: 600,
-                        }}>
-                            <span>🔥</span>
-                            <span>12</span>
-                        </div>
-                        <span style={{
-                            fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                            fontSize: 11, color: T.ink3, letterSpacing: '0.1em',
-                        }}>
-                            {SESSION_ID}
-                        </span>
-                    </div>
                 </header>
 
                 {/* ── Stage ──────────────────────────────────────────── */}
@@ -717,13 +699,7 @@ export default function Record() {
                                 fontSize: 12, fontWeight: 600, letterSpacing: '0.02em',
                             }}>
                                 {topic.category.ar} · B2
-                            </span>
-                            <span style={{
-                                fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                                fontSize: 11, color: T.ink3, letterSpacing: '0.1em',
-                            }}>
-                                {SESSION_ID}
-                            </span>
+                            </span> 
                         </div>
                         <h1 style={{
                             fontSize: 'clamp(26px, 3.2vw, 44px)',
@@ -749,26 +725,60 @@ export default function Record() {
                         </div>
                     </section>
 
-                    {/* Hero: orb + ring + rails */}
+                    {/* Stats row */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+                        <StatChip label="كلمات" value={wordCount} />
+                        <StatChip label="ك/د"   value={running && elapsed > 5 ? wpm : '—'} />
+                    </div>
+
+                    {/* Hero: circle with waveform inside + timer overlapping bottom edge */}
                     <section style={{
                         position: 'relative',
                         display: 'grid', placeItems: 'center',
-                        padding: '8px 0', minHeight: stageSize,
+                        padding: '4px 0',
                     }}>
-                        {/* Centre stage */}
                         <div style={{
                             position: 'relative',
                             width: stageSize, height: stageSize,
                             display: 'grid', placeItems: 'center',
                         }}>
+                            {/* Progress ring — outermost countdown band */}
                             <ProgressRing progress={elapsed / DURATION} size={ringSize} />
-                            <VoiceOrb state={studioState} level={orbLevel} size={orbBodySize} />
 
-                            {/* Timer pill */}
+                            {/* Pulse rings — outside the clipped circle so they bleed outward */}
+                            <VoiceOrbPulse state={studioState} size={orbBodySize} />
+
+                            {/* Inner bordered circle — clips waveform bars */}
                             <div style={{
-                                position: 'absolute', bottom: -12, left: '50%',
+                                position: 'absolute',
+                                top: '50%', left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                width: innerSize, height: innerSize,
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                border: `1.5px solid ${T.line2}`,
+                                background: T.surface,
+                            }}>
+                                {/* Orb blob + icon centered inside */}
+                                <VoiceOrbBlob state={studioState} level={orbLevel} size={orbBodySize} />
+
+                                {/* Waveform bars — anchored to the bottom of the circle */}
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0, left: 0, right: 0,
+                                    height: 72, pointerEvents: 'none',
+                                }}>
+                                    <Waveform active={running} levels={levels} />
+                                </div>
+                            </div>
+
+                            {/* Timer pill — overlaps the bottom edge of the inner circle */}
+                            <div style={{
+                                position: 'absolute',
+                                top: `calc(50% + ${Math.round(innerSize / 2) - 16}px)`,
+                                left: '50%',
                                 transform: 'translateX(-50%)',
-                                textAlign: 'center', pointerEvents: 'none',
+                                textAlign: 'center', pointerEvents: 'none', zIndex: 10,
                             }}>
                                 <div style={{
                                     display: 'inline-flex',
@@ -782,39 +792,19 @@ export default function Record() {
                                     transition: 'border-color 0.3s, color 0.3s',
                                 }}>
                                     <span>{mm}</span>
-                                    <span style={{
-                                        animation: running ? 'pulse 1.4s steps(2) infinite' : 'none',
-                                    }}>:</span>
+                                    <span style={{ animation: running ? 'pulse 1.4s steps(2) infinite' : 'none' }}>:</span>
                                     <span>{ss}</span>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Left rail — stats */}
-                        <aside className="studio-rail" style={{
-                            position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-                            right: `calc(50% + ${Math.round(stageSize / 2) + 12}px)`,
-                            display: 'flex', flexDirection: 'column', gap: 12, zIndex: 3,
-                        }}>
-                            <StatChip label="كلمات" value={wordCount} />
-                            <StatChip label="ك/د"   value={running && elapsed > 5 ? wpm : '—'} />
-                            <StatChip label="ثقة"   value={running ? '92%' : '—'} />
-                        </aside>
-
-                        {/* Right rail — hints */}
-                        <aside className="studio-rail" style={{
-                            position: 'absolute', top: '50%', transform: 'translateY(-50%)',
-                            left: `calc(50% + ${Math.round(stageSize / 2) + 12}px)`,
-                            display: 'flex', flexDirection: 'column', gap: 12, zIndex: 3,
-                        }}>
-                            {studioState !== 'finished' && studioState !== 'analyzing' && (
-                                <HintCard hint={HINTS[hintIdx]} key={hintIdx} />
-                            )}
-                        </aside>
                     </section>
 
-                    {/* Waveform */}
-                    <Waveform active={running} levels={levels} />
+                    {/* Hint card — inline below circle */}
+                    {studioState !== 'finished' && studioState !== 'analyzing' && (
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <HintCard hint={HINTS[hintIdx]} key={hintIdx} />
+                        </div>
+                    )}
 
                     {/* Transcript / textarea / analyzing */}
                     {(studioState === 'finished' || studioState === 'analyzing') ? (
@@ -1007,7 +997,7 @@ export default function Record() {
                                     opacity: (studioState === 'connecting' || micState === 'checking') ? 0.7 : 1,
                                     boxShadow: [
                                         '0 1px 0 rgba(255,255,255,0.4) inset',
-                                        `0 -10px 30px oklch(70% 0.20 125 / 0.80) inset`,
+                                        `0 -10px 30px oklch(38% 0.22 255 / 0.80) inset`,
                                         `0 14px 40px -10px ${T.accent}b3`,
                                     ].join(', '),
                                     minWidth: 220, fontFamily: 'inherit',

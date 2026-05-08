@@ -3,20 +3,19 @@ import { useState, useEffect } from 'react';
 import { TOPICS } from '@/data/topics';
 import type { Topic } from '@/types/fasih';
 
-const SESSION_ID = 'A3B9F2';
 
-// Design tokens — matches Record.tsx dark theme
+// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(14% 0.012 280)',
-    surface:   'oklch(20% 0.012 280)',
-    surface2:  'oklch(24% 0.012 280)',
-    line:      'oklch(28% 0.012 280)',
-    line2:     'oklch(34% 0.012 280)',
-    ink:       'oklch(97% 0.005 90)',
-    ink2:      'oklch(78% 0.01 90)',
-    ink3:      'oklch(58% 0.01 90)',
-    accent:    'oklch(92% 0.22 125)',
-    accentInk: 'oklch(14% 0.01 280)',
+    bg:        'oklch(99% 0.003 280)',
+    surface:   'oklch(96% 0.005 280)',
+    surface2:  'oklch(93% 0.006 280)',
+    line:      'oklch(88% 0.008 280)',
+    line2:     'oklch(82% 0.008 280)',
+    ink:       'oklch(14% 0.012 280)',
+    ink2:      'oklch(32% 0.01 280)',
+    ink3:      'oklch(52% 0.01 280)',
+    accent:    'oklch(55% 0.22 255)',
+    accentInk: 'oklch(99% 0.003 280)',
 } as const;
 
 export default function Home() {
@@ -90,7 +89,7 @@ export default function Home() {
                         position: sticky;
                         bottom: 0;
                         padding: 10px 0 8px;
-                        background: linear-gradient(to bottom, transparent 0%, oklch(14% 0.012 280) 40%);
+                        background: linear-gradient(to bottom, transparent 0%, oklch(99% 0.003 280) 40%);
                     }
                     .home-sticky-bar button {
                         width: 100% !important;
@@ -125,7 +124,7 @@ export default function Home() {
                 {/* Grain texture */}
                 <div style={{
                     position: 'absolute', inset: 0,
-                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.025) 1px, transparent 0)',
+                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.06) 1px, transparent 0)',
                     backgroundSize: '4px 4px',
                     pointerEvents: 'none', zIndex: 0,
                 }} />
@@ -137,14 +136,14 @@ export default function Home() {
                     width: 1100, height: 1100, borderRadius: '50%',
                     background: `radial-gradient(closest-side, ${T.accent}28, transparent 70%)`,
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
-                    opacity: 0.4,
+                    opacity: 0.18,
                 }} />
 
                 {/* ── Header ─────────────────────────────────────── */}
                 <header className="home-header" style={{
                     position: 'relative', zIndex: 5,
                     borderBottom: `1px solid ${T.line}`,
-                    background: `oklch(14% 0.012 280 / 0.85)`,
+                    background: `oklch(99% 0.003 280 / 0.88)`,
                     backdropFilter: 'blur(12px)',
                 }}>
                     {/* Brand */}
@@ -188,27 +187,7 @@ export default function Home() {
                                 {label}
                             </button>
                         ))}
-                    </nav>
-
-                    {/* Streak + session ID */}
-                    <div className="home-streak" style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-start' }}>
-                        <div style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            background: T.surface, border: `1px solid ${T.line}`,
-                            padding: '7px 12px', borderRadius: 999,
-                            fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                            fontSize: 13, fontWeight: 600,
-                        }}>
-                            <span>🔥</span>
-                            <span>12</span>
-                        </div>
-                        <span className="home-streak-id" style={{
-                            fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                            fontSize: 11, color: T.ink3, letterSpacing: '0.1em',
-                        }}>
-                            {SESSION_ID}
-                        </span>
-                    </div>
+                    </nav> 
                 </header>
 
                 {/* ── Main ───────────────────────────────────────── */}
