@@ -14,21 +14,20 @@ const HINTS = [
     { ar: 'اختم بفكرة جامعة',            en: 'Wrap with a closing thought' },
 ];
 
-// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(99% 0.003 280)',
-    surface:   'oklch(96% 0.005 280)',
-    surface2:  'oklch(93% 0.006 280)',
-    line:      'oklch(88% 0.008 280)',
-    line2:     'oklch(82% 0.008 280)',
-    ink:       'oklch(14% 0.012 280)',
-    ink2:      'oklch(32% 0.01 280)',
-    ink3:      'oklch(52% 0.01 280)',
-    accent:    'oklch(55% 0.22 255)',
-    accentInk: 'oklch(99% 0.003 280)',
-    ok:        'oklch(45% 0.18 150)',
-    warn:      'oklch(55% 0.16 70)',
-    danger:    'oklch(50% 0.2 25)',
+    bg: 'var(--bg)',
+    surface: 'var(--bg-card)',
+    surface2: 'var(--bg-raised)',
+    line: 'var(--line)',
+    line2: 'var(--line-2)',
+    ink: 'var(--ink)',
+    ink2: 'var(--ink-dim)',
+    ink3: 'var(--ink-mute)',
+    accent: 'var(--accent)',
+    accentInk: 'var(--bg)',
+    ok: 'var(--fix)',
+    warn: 'var(--ink-mute)',
+    danger: 'var(--err)',
 } as const;
 
 type MicState    = 'checking' | 'available' | 'unavailable';
@@ -84,7 +83,7 @@ function VoiceOrbPulse({ state, size = 240 }: { state: StudioState; size?: numbe
                 {isRec && [0, 1, 2].map(i => (
                     <span key={i} style={{
                         position: 'absolute', inset: 0, borderRadius: '50%',
-                        border: `1.5px solid ${T.accent}99`,
+                        border: '1.5px solid color-mix(in srgb, var(--accent) 60%, transparent)',
                         animation: 'pulseRing 1.8s ease-out infinite',
                         animationDelay: `${i * 0.6}s`,
                         opacity: 0,
@@ -111,19 +110,19 @@ function VoiceOrbBlob({ state, level, size }: { state: StudioState; level: numbe
                 {/* Blob */}
                 <div style={{
                     position: 'absolute', inset: 0, borderRadius: '50%',
-                    background: `radial-gradient(circle at 35% 30%, ${T.accent}f0, ${T.accent} 55%, oklch(38% 0.22 255))`,
+                    background: 'radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 90%, var(--bg-card)), var(--accent) 55%, var(--accent-dim))',
                     animation: isPaused ? 'none' : 'blob 7s ease-in-out infinite',
                     filter: isPaused ? 'saturate(0.4) brightness(0.85)' : 'none',
                     boxShadow: [
-                        `0 30px 80px -20px ${T.accent}99`,
-                        `inset 0 -20px 40px oklch(38% 0.22 255 / 0.50)`,
-                        `inset 0 20px 40px oklch(100% 0 0 / 0.30)`,
+                        '0 30px 80px -20px var(--accent-glow)',
+                        'inset 0 -20px 40px color-mix(in srgb, var(--accent-dim) 50%, transparent)',
+                        'inset 0 20px 40px color-mix(in srgb, var(--bg-card) 30%, transparent)',
                     ].join(', '),
                 }} />
                 {/* Ambient glow */}
                 <div style={{
                     position: 'absolute', inset: -Math.round(size / 8), borderRadius: '50%',
-                    background: `radial-gradient(closest-side, ${T.accent}4d, transparent 70%)`,
+                    background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(20px)', zIndex: -1,
                     opacity: state === 'idle' ? 0.4 : 0.8,
                 }} />
@@ -189,7 +188,7 @@ function Waveform({ active, levels }: { active: boolean; levels: number[] }) {
                         ? `${Math.max(4, v * 52)}px`
                         : `${4 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 2}px`,
                     background: active
-                        ? `linear-gradient(180deg, ${T.accent}, ${T.accent}99)`
+                        ? 'linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, transparent))'
                         : T.line2,
                     borderRadius: 4,
                     transition: active ? 'height 0.08s linear' : 'height 0.4s',
@@ -572,6 +571,16 @@ export default function Record() {
         else if (studioState === 'recording') pause();
     };
 
+    const canPrimary = studioState !== 'connecting'
+        && studioState !== 'finished'
+        && studioState !== 'analyzing'
+        && micState !== 'checking';
+
+    const handleOrbActivate = () => {
+        if (!canPrimary) return;
+        handlePrimary();
+    };
+
     // ── Keyboard shortcuts ─────────────────────────────────────────
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
@@ -615,7 +624,7 @@ export default function Record() {
                     position: 'absolute',
                     top: '-20%', left: '50%', transform: 'translateX(-50%)',
                     width: 1100, height: 1100, borderRadius: '50%',
-                    background: `radial-gradient(closest-side, ${T.accent}38, transparent 70%)`,
+                    background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
                     opacity: running ? 0.22 : (finished || analyzing) ? 0.28 : 0.12,
                     transition: 'opacity 0.8s ease',
@@ -628,7 +637,7 @@ export default function Record() {
                     alignItems: 'center',
                     padding: '22px 36px',
                     borderBottom: `1px solid ${T.line}`,
-                    background: `oklch(99% 0.003 280 / 0.88)`,
+                    background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
                     backdropFilter: 'blur(12px)',
                 }}>
                     {/* Brand */}
@@ -674,9 +683,9 @@ export default function Record() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
                             <span style={{
                                 display: 'inline-flex', alignItems: 'center',
-                                background: `${T.accent}26`,
+                                background: 'color-mix(in srgb, var(--accent) 15%, transparent)',
                                 color: T.accent,
-                                border: `1px solid ${T.accent}4d`,
+                                border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)',
                                 padding: '6px 14px', borderRadius: 999,
                                 fontSize: 12, fontWeight: 600, letterSpacing: '0.02em',
                             }}>
@@ -731,7 +740,19 @@ export default function Record() {
                             <VoiceOrbPulse state={studioState} size={orbBodySize} />
 
                             {/* Inner bordered circle — clips waveform bars */}
-                            <div style={{
+                            <div
+                                role="button"
+                                tabIndex={canPrimary ? 0 : -1}
+                                aria-label={primaryLabel[studioState]}
+                                onClick={handleOrbActivate}
+                                onKeyDown={(e) => {
+                                    if (!canPrimary) return;
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        handlePrimary();
+                                    }
+                                }}
+                                style={{
                                 position: 'absolute',
                                 top: '50%', left: '50%',
                                 transform: 'translate(-50%, -50%)',
@@ -740,7 +761,12 @@ export default function Record() {
                                 overflow: 'hidden',
                                 border: `1.5px solid ${T.line2}`,
                                 background: T.surface,
-                            }}>
+                                cursor: canPrimary ? 'pointer' : 'not-allowed',
+                                outline: 'none',
+                                opacity: canPrimary ? 1 : 0.85,
+                                userSelect: 'none',
+                            }}
+                            >
                                 {/* Orb blob + icon centered inside */}
                                 <VoiceOrbBlob state={studioState} level={orbLevel} size={orbBodySize} />
 
@@ -800,7 +826,7 @@ export default function Record() {
                                 <>
                                     <span style={{
                                         width: 16, height: 16, borderRadius: '50%',
-                                        border: `2px solid ${T.accent}40`,
+                                        border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                                         borderTopColor: T.accent,
                                         animation: 'spin 0.7s linear infinite',
                                         display: 'block', flexShrink: 0,
@@ -949,14 +975,15 @@ export default function Record() {
                             <div className="record-controls-primary" style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 10,
                                 justifyContent: 'center',
-                                background: `${T.accent}1a`, border: `1px solid ${T.accent}33`,
+                                background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+                                border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
                                 color: T.accent, padding: '18px 36px', borderRadius: 999,
                                 fontSize: 15, fontWeight: 600, minWidth: 220,
                             }}>
                                 {analyzing && (
                                     <span style={{
                                         width: 16, height: 16, borderRadius: '50%',
-                                        border: `2px solid ${T.accent}40`,
+                                        border: '2px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                                         borderTopColor: T.accent,
                                         animation: 'spin 0.7s linear infinite',
                                         display: 'block', flexShrink: 0,
@@ -978,9 +1005,9 @@ export default function Record() {
                                     cursor: (studioState === 'connecting' || micState === 'checking') ? 'not-allowed' : 'pointer',
                                     opacity: (studioState === 'connecting' || micState === 'checking') ? 0.7 : 1,
                                     boxShadow: [
-                                        '0 1px 0 rgba(255,255,255,0.4) inset',
-                                        `0 -10px 30px oklch(38% 0.22 255 / 0.80) inset`,
-                                        `0 14px 40px -10px ${T.accent}b3`,
+                                        '0 1px 0 color-mix(in srgb, var(--bg-card) 40%, transparent) inset',
+                                        '0 -10px 30px color-mix(in srgb, var(--accent-dim) 80%, transparent) inset',
+                                        '0 14px 40px -10px var(--accent-glow)',
                                     ].join(', '),
                                     minWidth: 220, fontFamily: 'inherit',
                                     transition: 'transform 0.15s ease',
@@ -1062,7 +1089,7 @@ export default function Record() {
                                     : studioState === 'paused' ? T.warn
                                     : (studioState === 'finished' || studioState === 'analyzing') ? T.ok
                                     : T.ink3,
-                                boxShadow: studioState === 'recording' ? `0 0 0 4px ${T.accent}4d` : 'none',
+                                boxShadow: studioState === 'recording' ? '0 0 0 4px var(--accent-glow2)' : 'none',
                                 animation: studioState === 'recording' ? 'recordGlow 1.4s ease-in-out infinite' : 'none',
                             }} />
                             <span style={{ fontFamily: 'inherit', fontSize: 12 }}>

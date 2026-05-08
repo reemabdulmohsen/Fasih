@@ -7,29 +7,30 @@
 /* ── Design Tokens (light mode default) ────────────────────── */
 :root {
     /* Backgrounds */
-    --bg:        #f0f6ff;
-    --bg-raised: #e6efff;
-    --bg-card:   #ffffff;
-    --bg-card-2: #eaf2ff;
+    --bg:        #F4F2EC;
+    --bg-raised: #EAE7DE;
+    /* Slightly warm “paper” instead of pure white */
+    --bg-card:   #FBF9F2;
+    --bg-card-2: #EAE7DE;
     /* Borders */
-    --line:      #ccd9f0;
-    --line-2:    #b5c8e8;
+    --line:      #D4D0C6;
+    --line-2:    #C4C0B6;
     /* Text */
-    --ink:       #0f1829;
-    --ink-dim:   #1e3057;
-    --ink-mute:  #4d6490;
-    --ink-faint: #9aaac8;
+    --ink:       #0F1530;
+    --ink-dim:   #3D3A50;
+    --ink-mute:  #8A8678;
+    --ink-faint: #B8B4A8;
     /* Accent — blue */
-    --accent:       #3b8ef3;
-    --accent-2:     #2a7de8;
-    --accent-dim:   #1a6dd0;
-    --accent-glow:  rgba(59, 142, 243, 0.22);
-    --accent-glow2: rgba(59, 142, 243, 0.08);
+    --accent:       #1859FF;
+    --accent-2:     #0A2D9C;
+    --accent-dim:   #0A2D9C;
+    --accent-glow:  rgba(24, 89, 255, 0.22);
+    --accent-glow2: rgba(24, 89, 255, 0.08);
     /* Status */
-    --err:       #ef6a5c;
-    --err-bg:    rgba(239, 106, 92, 0.12);
-    --fix:       #3a9e89;
-    --fix-bg:    rgba(58, 158, 137, 0.12);
+    --err:       #D9392A;
+    --err-bg:    rgba(217, 57, 42, 0.12);
+    --fix:       #1FA45A;
+    --fix-bg:    rgba(31, 164, 90, 0.12);
     /* Fonts */
     --f-ar:   'Readex Pro', 'Tajawal', sans-serif;
     --f-en:   'IBM Plex Sans', system-ui, sans-serif;
@@ -41,23 +42,25 @@
 
 /* ── Dark mode ─────────────────────────────────────────────── */
 [data-theme="dark"] {
-    --bg:        #070b14;
-    --bg-raised: #0d1220;
-    --bg-card:   #0f1624;
-    --bg-card-2: #141c2e;
-    --line:      #1c2a3f;
-    --line-2:    #253348;
-    --ink:       #e8eaf6;
-    --ink-dim:   #8b9cc0;
-    --ink-mute:  #4d5f7a;
-    --ink-faint: #2b3851;
-    --accent:       #4d9ef5;
-    --accent-2:     #3b8ef3;
-    --accent-dim:   #2a7de8;
-    --accent-glow:  rgba(77, 158, 245, 0.25);
-    --accent-glow2: rgba(77, 158, 245, 0.09);
-    --fix:       #5ab8a0;
-    --fix-bg:    rgba(90, 184, 160, 0.14);
+    --bg:        #0A0D1A;
+    --bg-raised: #0F1530;
+    --bg-card:   #131828;
+    --bg-card-2: #181E32;
+    --line:      #1E2540;
+    --line-2:    #28304E;
+    --ink:       #F4F2EC;
+    --ink-dim:   #C8C4BC;
+    --ink-mute:  #8A8678;
+    --ink-faint: #3A3850;
+    --accent:       #4A7AFF;
+    --accent-2:     #1859FF;
+    --accent-dim:   #0A2D9C;
+    --accent-glow:  rgba(74, 122, 255, 0.25);
+    --accent-glow2: rgba(74, 122, 255, 0.09);
+    --err:       #E04A3A;
+    --err-bg:    rgba(224, 74, 58, 0.14);
+    --fix:       #2EC470;
+    --fix-bg:    rgba(46, 196, 112, 0.14);
 }
 
 * { box-sizing: border-box; }
@@ -77,19 +80,19 @@ html, body {
 
 body {
     background:
-        radial-gradient(ellipse at 15% 0%,   rgba(59, 142, 243, 0.10) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 100%,  rgba(42, 125, 232, 0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 15% 0%,   rgba(24, 89, 255, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%,  rgba(10, 45, 156, 0.06) 0%, transparent 55%),
         var(--bg);
 }
 
 [data-theme="dark"] body {
     background:
-        radial-gradient(ellipse at 15% 0%,  rgba(59, 142, 243, 0.09) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 100%, rgba(42, 125, 232, 0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 15% 0%,  rgba(24, 89, 255, 0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(10, 45, 156, 0.08) 0%, transparent 55%),
         var(--bg);
 }
 
-::selection { background: var(--accent); color: #fff; }
+::selection { background: var(--accent); color: var(--bg); }
 
 /* ── Animations ────────────────────────────────────────────── */
 @keyframes fadeUp {

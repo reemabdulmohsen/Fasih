@@ -4,18 +4,17 @@ import { TOPICS } from '@/data/topics';
 import type { Topic } from '@/types/fasih';
 
 
-// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(99% 0.003 280)',
-    surface:   'oklch(96% 0.005 280)',
-    surface2:  'oklch(93% 0.006 280)',
-    line:      'oklch(88% 0.008 280)',
-    line2:     'oklch(82% 0.008 280)',
-    ink:       'oklch(14% 0.012 280)',
-    ink2:      'oklch(32% 0.01 280)',
-    ink3:      'oklch(52% 0.01 280)',
-    accent:    'oklch(55% 0.22 255)',
-    accentInk: 'oklch(99% 0.003 280)',
+    bg: 'var(--bg)',
+    surface: 'var(--bg-card)',
+    surface2: 'var(--bg-raised)',
+    line: 'var(--line)',
+    line2: 'var(--line-2)',
+    ink: 'var(--ink)',
+    ink2: 'var(--ink-dim)',
+    ink3: 'var(--ink-mute)',
+    accent: 'var(--accent)',
+    accentInk: 'var(--bg)',
 } as const;
 
 export default function Home() {
@@ -89,7 +88,7 @@ export default function Home() {
                         position: sticky;
                         bottom: 0;
                         padding: 10px 0 8px;
-                        background: linear-gradient(to bottom, transparent 0%, oklch(99% 0.003 280) 40%);
+                        background: linear-gradient(to bottom, transparent 0%, var(--bg) 40%);
                     }
                     .home-sticky-bar button {
                         width: 100% !important;
@@ -134,7 +133,7 @@ export default function Home() {
                     position: 'absolute',
                     top: '-20%', left: '50%', transform: 'translateX(-50%)',
                     width: 1100, height: 1100, borderRadius: '50%',
-                    background: `radial-gradient(closest-side, ${T.accent}28, transparent 70%)`,
+                    background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
                     opacity: 0.18,
                 }} />
@@ -143,7 +142,7 @@ export default function Home() {
                 <header className="home-header" style={{
                     position: 'relative', zIndex: 5,
                     borderBottom: `1px solid ${T.line}`,
-                    background: `oklch(99% 0.003 280 / 0.88)`,
+                    background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
                     backdropFilter: 'blur(12px)',
                 }}>
                     {/* Brand */}
@@ -238,7 +237,7 @@ export default function Home() {
                                 <div style={{
                                     position: 'absolute', top: -60, right: -60,
                                     width: 220, height: 220, borderRadius: '50%',
-                                    background: `radial-gradient(circle, ${T.accent}18 0%, transparent 70%)`,
+                                    background: 'radial-gradient(circle, var(--accent-glow2) 0%, transparent 70%)',
                                     pointerEvents: 'none',
                                 }} />
 
@@ -250,17 +249,17 @@ export default function Home() {
                                     <span style={{
                                         display: 'inline-flex', alignItems: 'center', gap: 7,
                                         padding: '5px 13px',
-                                        border: `1px solid ${T.accent}4d`,
+                                        border: `1px solid color-mix(in srgb, ${T.accent} 30%, transparent)`,
                                         borderRadius: 999,
                                         color: T.accent,
-                                        background: `${T.accent}18`,
+                                        background: `color-mix(in srgb, ${T.accent} 10%, transparent)`,
                                         fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
                                         fontSize: 12, fontWeight: 600,
                                     }}>
                                         <span style={{
                                             width: 5, height: 5, borderRadius: '50%',
                                             background: T.accent, display: 'inline-block',
-                                            boxShadow: `0 0 6px ${T.accent}`,
+                                            boxShadow: '0 0 10px var(--accent-glow)',
                                         }} />
                                         {topic.category.ar}
                                     </span>
@@ -323,8 +322,8 @@ export default function Home() {
                                                 transition: 'border-color 0.2s, background 0.2s',
                                             }}
                                             onMouseEnter={e => {
-                                                (e.currentTarget as HTMLDivElement).style.borderColor = `${T.accent}66`;
-                                                (e.currentTarget as HTMLDivElement).style.background = `${T.accent}0f`;
+                                                (e.currentTarget as HTMLDivElement).style.borderColor = 'color-mix(in srgb, var(--accent) 55%, var(--line-2))';
+                                                (e.currentTarget as HTMLDivElement).style.background = 'color-mix(in srgb, var(--accent) 7%, var(--bg-raised))';
                                             }}
                                             onMouseLeave={e => {
                                                 (e.currentTarget as HTMLDivElement).style.borderColor = T.line2;
@@ -357,7 +356,7 @@ export default function Home() {
                                         onClick={shuffle}
                                         style={ghostBtnStyle}
                                         onMouseEnter={e => {
-                                            (e.currentTarget as HTMLButtonElement).style.borderColor = `${T.accent}66`;
+                                            (e.currentTarget as HTMLButtonElement).style.borderColor = 'color-mix(in srgb, var(--accent) 55%, var(--line-2))';
                                             (e.currentTarget as HTMLButtonElement).style.color = T.ink;
                                         }}
                                         onMouseLeave={e => {
@@ -376,11 +375,11 @@ export default function Home() {
                                         style={primaryBtnStyle}
                                         onMouseEnter={e => {
                                             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
-                                            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 32px ${T.accent}66, 0 4px 16px rgba(0,0,0,0.3)`;
+                                            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 32px var(--accent-glow), 0 4px 16px rgba(0,0,0,0.25)';
                                         }}
                                         onMouseLeave={e => {
                                             (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                                            (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 18px ${T.accent}44`;
+                                            (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 18px var(--accent-glow2)';
                                         }}
                                     >
                                         ابدأ التسجيل
@@ -432,5 +431,5 @@ const primaryBtnStyle: React.CSSProperties = {
     color: T.accentInk,
     borderColor: T.accent,
     fontWeight: 700,
-    boxShadow: `0 0 18px ${T.accent}44`,
+    boxShadow: '0 0 18px var(--accent-glow2)',
 };

@@ -4,26 +4,25 @@ import type { Analysis } from '@/types/fasih';
 
 
 
-// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(99% 0.003 280)',
-    surface:   'oklch(96% 0.005 280)',
-    surface2:  'oklch(93% 0.006 280)',
-    line:      'oklch(88% 0.008 280)',
-    line2:     'oklch(82% 0.008 280)',
-    ink:       'oklch(14% 0.012 280)',
-    ink2:      'oklch(32% 0.01 280)',
-    ink3:      'oklch(52% 0.01 280)',
-    accent:    'oklch(55% 0.22 255)',
-    accentInk: 'oklch(99% 0.003 280)',
-    ok:        'oklch(45% 0.18 150)',
-    warn:      'oklch(55% 0.16 70)',
-    danger:    'oklch(50% 0.2 25)',
+    bg: 'var(--bg)',
+    surface: 'var(--bg-card)',
+    surface2: 'var(--bg-raised)',
+    line: 'var(--line)',
+    line2: 'var(--line-2)',
+    ink: 'var(--ink)',
+    ink2: 'var(--ink-dim)',
+    ink3: 'var(--ink-mute)',
+    accent: 'var(--accent)',
+    accentInk: 'var(--bg)',
+    ok: 'var(--fix)',
+    warn: 'var(--ink-mute)',
+    danger: 'var(--err)',
 } as const;
 
 const SCORE_COLOR: Record<number, string> = {
     1: T.danger,
-    2: 'oklch(72% 0.18 35)',
+    2: 'color-mix(in srgb, var(--err) 55%, var(--accent))',
     3: T.warn,
     4: T.ok,
     5: T.accent,
@@ -95,7 +94,7 @@ export default function Report() {
                     position: 'fixed',
                     top: '-20%', left: '50%', transform: 'translateX(-50%)',
                     width: 1100, height: 1100, borderRadius: '50%',
-                    background: `radial-gradient(closest-side, ${T.accent}28, transparent 70%)`,
+                    background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
                     opacity: 0.18,
                 }} />
@@ -149,7 +148,7 @@ export default function Report() {
                 display: 'grid', gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`,
-                background: `oklch(99% 0.003 280 / 0.88)`,
+                background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
                 backdropFilter: 'blur(12px)',
                 position: 'sticky', top: 0, zIndex: 10,
             }}>
@@ -215,10 +214,10 @@ export default function Report() {
                     <div className="report-hero-ring">
                         <svg width="100%" height="100%" viewBox="0 0 138 138" style={{
                             transform: 'rotate(-90deg)',
-                            filter: `drop-shadow(0 0 16px ${T.accent}55)`,
+                            filter: 'drop-shadow(0 0 16px var(--accent-glow))',
                         }}>
                             <circle cx={69} cy={69} r={ringR} strokeWidth={4} fill="none"
-                                stroke={`${T.accent}18`} strokeLinecap="round" />
+                                stroke={'color-mix(in srgb, var(--accent) 10%, transparent)'} strokeLinecap="round" />
                             <circle
                                 cx={69} cy={69} r={ringR} strokeWidth={4} fill="none"
                                 stroke={T.accent} strokeLinecap="round"
@@ -282,7 +281,7 @@ export default function Report() {
                                         width: (d.score / 5 * 100) + '%', height: '100%',
                                         background: SCORE_COLOR[d.score], borderRadius: 2,
                                         transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)',
-                                        boxShadow: `0 0 6px ${SCORE_COLOR[d.score]}88`,
+                                        boxShadow: `0 0 8px color-mix(in srgb, ${SCORE_COLOR[d.score]} 55%, transparent)`,
                                     }} />
                                 </div>
                                 <span style={{
@@ -322,8 +321,8 @@ export default function Report() {
                                         <span key={i} style={{
                                             fontFamily: '"IBM Plex Sans Arabic", sans-serif',
                                             fontSize: 12, padding: '3px 10px', borderRadius: 6,
-                                            background: `${T.danger}18`,
-                                            border: `1px solid ${T.danger}44`,
+                                            background: 'color-mix(in srgb, var(--err) 10%, transparent)',
+                                            border: '1px solid color-mix(in srgb, var(--err) 25%, transparent)',
                                             color: T.danger,
                                         }}>
                                             {err}
@@ -348,8 +347,8 @@ export default function Report() {
                                         <span key={i} style={{
                                             fontFamily: '"IBM Plex Sans Arabic", sans-serif',
                                             fontSize: 12, padding: '3px 10px', borderRadius: 6,
-                                            background: `${T.accent}18`,
-                                            border: `1px solid ${T.accent}44`,
+                                            background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+                                            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                                             color: T.accent,
                                         }}>
                                             {w}
@@ -382,8 +381,8 @@ export default function Report() {
                 <div style={{
                     background: T.surface,
                     border: `1px solid ${analysis.topic_relevance.on_topic
-                        ? `${T.ok}44`
-                        : `${T.danger}44`}`,
+                        ? 'color-mix(in srgb, var(--fix) 25%, transparent)'
+                        : 'color-mix(in srgb, var(--err) 25%, transparent)'}`,
                     borderRadius: 16, padding: '20px 24px', marginBottom: 20,
                     display: 'flex', alignItems: 'flex-start', gap: 18,
                 }}>
@@ -392,9 +391,11 @@ export default function Report() {
                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                             width: 36, height: 36, borderRadius: '50%',
                             background: analysis.topic_relevance.on_topic
-                                ? `${T.ok}28` : `${T.danger}28`,
+                                ? 'color-mix(in srgb, var(--fix) 14%, transparent)'
+                                : 'color-mix(in srgb, var(--err) 14%, transparent)',
                             border: `1px solid ${analysis.topic_relevance.on_topic
-                                ? `${T.ok}55` : `${T.danger}55`}`,
+                                ? 'color-mix(in srgb, var(--fix) 35%, transparent)'
+                                : 'color-mix(in srgb, var(--err) 35%, transparent)'}`,
                             color: analysis.topic_relevance.on_topic ? T.ok : T.danger,
                             fontSize: 16, fontWeight: 700,
                         }}>
@@ -415,8 +416,8 @@ export default function Report() {
                             <span style={{
                                 fontFamily: '"IBM Plex Sans Arabic", sans-serif',
                                 fontSize: 12, padding: '2px 10px', borderRadius: 999,
-                                background: `${SCORE_COLOR[analysis.topic_relevance.score]}18`,
-                                border: `1px solid ${SCORE_COLOR[analysis.topic_relevance.score]}44`,
+                                background: `color-mix(in srgb, ${SCORE_COLOR[analysis.topic_relevance.score]} 10%, transparent)`,
+                                border: `1px solid color-mix(in srgb, ${SCORE_COLOR[analysis.topic_relevance.score]} 25%, transparent)`,
                                 color: SCORE_COLOR[analysis.topic_relevance.score], fontWeight: 600,
                             }}>
                                 {analysis.topic_relevance.score}/5 · {SCORE_LABEL[analysis.topic_relevance.score]}
@@ -447,8 +448,8 @@ export default function Report() {
                                 width: 22, height: 22,
                                 display: 'grid', placeItems: 'center',
                                 borderRadius: '50%',
-                                background: `${T.accent}1a`,
-                                border: `1px solid ${T.accent}44`,
+                                background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
+                                border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
                                 fontSize: 12, color: T.accent,
                             }}>!</span>
                             أبرز النقاط للتحسين
@@ -538,8 +539,8 @@ function DetailCard({ title, score, explanation, children }: {
                 <span style={{
                     fontFamily: '"IBM Plex Sans Arabic", sans-serif',
                     fontSize: 11, padding: '3px 10px', borderRadius: 999,
-                    background: `${SCORE_COLOR[score]}18`,
-                    border: `1px solid ${SCORE_COLOR[score]}44`,
+                    background: `color-mix(in srgb, ${SCORE_COLOR[score]} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${SCORE_COLOR[score]} 25%, transparent)`,
                     color: SCORE_COLOR[score], fontWeight: 600,
                 }}>
                     {score}/5 · {SCORE_LABEL[score]}
@@ -562,8 +563,12 @@ function CheckBadge({ label, checked }: { label: string; checked: boolean }) {
             display: 'inline-flex', alignItems: 'center', gap: 5,
             fontFamily: '"IBM Plex Sans Arabic", sans-serif', fontSize: 12,
             padding: '4px 10px', borderRadius: 999,
-            background: checked ? `${T.ok}18` : `${T.danger}18`,
-            border: `1px solid ${checked ? `${T.ok}44` : `${T.danger}44`}`,
+            background: checked
+                ? 'color-mix(in srgb, var(--fix) 10%, transparent)'
+                : 'color-mix(in srgb, var(--err) 10%, transparent)',
+            border: `1px solid ${checked
+                ? 'color-mix(in srgb, var(--fix) 25%, transparent)'
+                : 'color-mix(in srgb, var(--err) 25%, transparent)'}`,
             color: checked ? T.ok : T.danger,
         }}>
             {checked ? '✓' : '✗'} {label}

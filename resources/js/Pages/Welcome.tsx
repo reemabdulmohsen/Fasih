@@ -8,20 +8,19 @@ type HealthResponse = {
     project: string;
 };
 
-// Design tokens — light theme with blue accent
 const T = {
-    bg:        'oklch(99% 0.003 280)',
-    surface:   'oklch(96% 0.005 280)',
-    surface2:  'oklch(93% 0.006 280)',
-    line:      'oklch(88% 0.008 280)',
-    line2:     'oklch(82% 0.008 280)',
-    ink:       'oklch(14% 0.012 280)',
-    ink2:      'oklch(32% 0.01 280)',
-    ink3:      'oklch(52% 0.01 280)',
-    accent:    'oklch(55% 0.22 255)',
-    accentInk: 'oklch(99% 0.003 280)',
-    ok:        'oklch(45% 0.18 150)',
-    danger:    'oklch(50% 0.2 25)',
+    bg: 'var(--bg)',
+    surface: 'var(--bg-card)',
+    surface2: 'var(--bg-raised)',
+    line: 'var(--line)',
+    line2: 'var(--line-2)',
+    ink: 'var(--ink)',
+    ink2: 'var(--ink-dim)',
+    ink3: 'var(--ink-mute)',
+    accent: 'var(--accent)',
+    accentInk: 'var(--bg)',
+    ok: 'var(--fix)',
+    danger: 'var(--err)',
 } as const;
 
 export default function Welcome() {
@@ -88,7 +87,7 @@ export default function Welcome() {
                     position: 'fixed',
                     top: '-20%', left: '50%', transform: 'translateX(-50%)',
                     width: 1100, height: 1100, borderRadius: '50%',
-                    background: `radial-gradient(closest-side, ${T.accent}28, transparent 70%)`,
+                    background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
                     opacity: 0.18,
                 }} />
@@ -101,7 +100,7 @@ export default function Welcome() {
                     alignItems: 'center',
                     padding: '22px 36px',
                     borderBottom: `1px solid ${T.line}`,
-                    background: `oklch(99% 0.003 280 / 0.88)`,
+                    background: 'color-mix(in srgb, var(--bg) 88%, transparent)',
                     backdropFilter: 'blur(12px)',
                 }}>
                     {/* Brand */}
@@ -177,7 +176,7 @@ export default function Welcome() {
                             fontWeight: 700,
                             lineHeight: 1.1,
                             margin: '0 0 20px',
-                            background: `linear-gradient(135deg, ${T.ink} 30%, ${T.accent} 70%)`,
+                            background: 'linear-gradient(135deg, var(--ink) 30%, var(--accent) 70%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
@@ -213,16 +212,16 @@ export default function Welcome() {
                                 fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
                                 fontSize: 16, fontWeight: 700,
                                 cursor: 'pointer',
-                                boxShadow: `0 0 20px ${T.accent}44, 0 4px 16px rgba(0,0,0,0.12)`,
+                                boxShadow: '0 0 20px var(--accent-glow2), 0 4px 16px rgba(0,0,0,0.12)',
                                 transition: 'transform 0.2s ease, box-shadow 0.2s',
                             }}
                             onMouseEnter={e => {
                                 (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)';
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 28px ${T.accent}55, 0 8px 24px rgba(0,0,0,0.16)`;
+                                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 28px var(--accent-glow), 0 8px 24px rgba(0,0,0,0.16)';
                             }}
                             onMouseLeave={e => {
                                 (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)';
-                                (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 20px ${T.accent}44, 0 4px 16px rgba(0,0,0,0.12)`;
+                                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 20px var(--accent-glow2), 0 4px 16px rgba(0,0,0,0.12)';
                             }}
                         >
                             ابدأ التدريب
