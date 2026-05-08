@@ -655,24 +655,6 @@ export default function Record() {
                         </div>
                     </div>
 
-                    {/* Nav pills */}
-                    <nav className="record-nav" style={{
-                        display: 'flex', gap: 6,
-                        background: T.surface, border: `1px solid ${T.line}`,
-                        padding: 5, borderRadius: 999,
-                    }}>
-                        {(['جلسة', 'سجلّي', 'المسارات'] as const).map((label, i) => (
-                            <button key={label} style={{
-                                background: i === 0 ? T.ink : 'transparent', border: 0,
-                                padding: '8px 18px', borderRadius: 999,
-                                color: i === 0 ? T.bg : T.ink2,
-                                fontSize: 13, fontWeight: 600,
-                                cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s',
-                            }}>
-                                {label}
-                            </button>
-                        ))}
-                    </nav>
                 </header>
 
                 {/* ── Stage ──────────────────────────────────────────── */}
