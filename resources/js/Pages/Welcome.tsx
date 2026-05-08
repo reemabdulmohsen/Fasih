@@ -63,7 +63,7 @@ export default function Welcome() {
 
     return (
         <>
-            <Head title="فصيح — مدرّب اللغة العربية" />
+            <Head title="فصيح — مدرّب الفصاحة" />
 
             <div style={{
                 minHeight: '100vh',
@@ -170,26 +170,6 @@ export default function Welcome() {
                         transition: 'opacity 0.6s ease, transform 0.6s ease',
                     }}>
 
-                        {/* Kicker badge */}
-                        <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8,
-                            padding: '6px 16px',
-                            border: `1px solid ${T.accent}4d`,
-                            borderRadius: 999,
-                            background: `${T.accent}18`,
-                            fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
-                            fontSize: 10, color: T.accent,
-                            textTransform: 'uppercase', letterSpacing: '0.2em',
-                            marginBottom: 36,
-                        }}>
-                            <span style={{
-                                width: 5, height: 5, borderRadius: '50%',
-                                background: T.accent, display: 'inline-block',
-                                animation: 'pulse 2s ease-in-out infinite',
-                            }} />
-                            Arabic Speaking Coach · AI Powered
-                        </div>
-
                         {/* Main title */}
                         <h1 style={{
                             fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
@@ -215,9 +195,9 @@ export default function Welcome() {
                             maxWidth: 400,
                             lineHeight: 1.8,
                         }}>
-                            تدرّب على التحدث بالعربية.
+                            تكلّم بثقة
                             <br />
-                            احصل على تغذية راجعة بالذكاء الاصطناعي.
+                            فصيح يسمعك ويصحّح لك في ثواني
                         </p>
 
                         {/* CTA */}
@@ -256,7 +236,7 @@ export default function Welcome() {
                             display: 'flex', flexWrap: 'wrap', gap: 10,
                             justifyContent: 'center', marginTop: 48,
                         }}>
-                            {['تسجيل صوتي مباشر', 'تفريغ فوري بـ GPT-4o', 'تقرير شامل', 'تصحيح النطق'].map((f, i) => (
+                            {['تسجيل صوتي مباشر', 'تقرير شامل', 'تصحيح النطق'].map((f, i) => (
                                 <span key={i} style={{
                                     padding: '6px 14px',
                                     border: `1px solid ${T.line2}`,

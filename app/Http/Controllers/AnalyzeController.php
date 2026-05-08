@@ -10,8 +10,8 @@ class AnalyzeController extends Controller
     public function __invoke(Request $request)
     {
         $request->validate([
-            'transcript' => 'required|string',
-            'topic' => 'required|string',
+            'transcript' => 'required|string|max:5000',
+            'topic' => 'required|string|max:500',
             'long_pauses_count' => 'required|integer|min:0',
             'filler_count' => 'required|integer|min:0',
             'filler_words' => 'present|array',

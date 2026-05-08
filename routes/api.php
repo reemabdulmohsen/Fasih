@@ -13,7 +13,9 @@ Route::get('/health', function () {
     ]);
 });
 
-Route::post('/transcribe', TranscribeController::class);
-Route::post('/realtime-session', RealtimeSessionController::class);
-Route::post('/analyze', AnalyzeController::class);
-Route::get('/topics', GenerateTopicsController::class);
+Route::middleware('throttle:20,1')->group(function () {
+    Route::post('/transcribe', TranscribeController::class);
+    Route::post('/realtime-session', RealtimeSessionController::class);
+    Route::post('/analyze', AnalyzeController::class);
+    Route::get('/topics', GenerateTopicsController::class);
+});
