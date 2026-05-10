@@ -7,11 +7,11 @@
 /* ── Design Tokens (light mode default) ────────────────────── */
 :root {
     /* Backgrounds */
-    --bg:        #F4F2EC;
-    --bg-raised: #EAE7DE;
+    --bg:        #F6F1E8;
+    --bg-raised: #EFE7DA;
     /* Slightly warm “paper” instead of pure white */
-    --bg-card:   #FBF9F2;
-    --bg-card-2: #EAE7DE;
+    --bg-card:   #FFFCF6;
+    --bg-card-2: #EFE7DA;
     /* Borders */
     --line:      #D4D0C6;
     --line-2:    #C4C0B6;
@@ -80,8 +80,8 @@ html, body {
 
 body {
     background:
-        radial-gradient(ellipse at 15% 0%,   rgba(24, 89, 255, 0.08) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 100%,  rgba(10, 45, 156, 0.06) 0%, transparent 55%),
+        radial-gradient(ellipse at 15% 0%,   rgba(24, 89, 255, 0.04) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%,  rgba(10, 45, 156, 0.03) 0%, transparent 55%),
         var(--bg);
 }
 

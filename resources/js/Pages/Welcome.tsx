@@ -176,10 +176,7 @@ export default function Welcome() {
                             fontWeight: 700,
                             lineHeight: 1.1,
                             margin: '0 0 20px',
-                            background: 'linear-gradient(135deg, var(--ink) 30%, var(--accent) 70%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            backgroundClip: 'text',
+                            color: T.ink,
                         }}>
                             فصيح
                         </h1>
