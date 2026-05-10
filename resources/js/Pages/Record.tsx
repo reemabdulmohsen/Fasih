@@ -173,31 +173,6 @@ function ProgressRing({ progress, size = 420 }: { progress: number; size?: numbe
     );
 }
 
-function Waveform({ active, levels }: { active: boolean; levels: number[] }) {
-    return (
-        <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 4, height: 56, padding: '0 24px',
-            opacity: active ? 1 : 0.45,
-            transition: 'opacity 0.3s',
-        }}>
-            {levels.map((v, i) => (
-                <span key={i} style={{
-                    flex: 1, maxWidth: 8, display: 'block',
-                    height: active
-                        ? `${Math.max(4, v * 52)}px`
-                        : `${4 + (Math.sin(i * 1.7) * 0.5 + 0.5) * 2}px`,
-                    background: active
-                        ? 'linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 70%, transparent))'
-                        : T.line2,
-                    borderRadius: 4,
-                    transition: active ? 'height 0.08s linear' : 'height 0.4s',
-                }} />
-            ))}
-        </div>
-    );
-}
-
 function StatChip({ label, value }: { label: string; value: string | number }) {
     return (
         <div style={{
@@ -722,7 +697,7 @@ export default function Record() {
                         <StatChip label="ك/د"   value={running && elapsed > 5 ? wpm : '—'} />
                     </div>
 
-                    {/* Hero: circle with waveform inside + timer overlapping bottom edge */}
+                    {/* Hero: circle with timer overlapping bottom edge */}
                     <section style={{
                         position: 'relative',
                         display: 'grid', placeItems: 'center',
@@ -739,7 +714,7 @@ export default function Record() {
                             {/* Pulse rings — outside the clipped circle so they bleed outward */}
                             <VoiceOrbPulse state={studioState} size={orbBodySize} />
 
-                            {/* Inner bordered circle — clips waveform bars */}
+                            {/* Inner bordered circle */}
                             <div
                                 role="button"
                                 tabIndex={canPrimary ? 0 : -1}
@@ -769,15 +744,6 @@ export default function Record() {
                             >
                                 {/* Orb blob + icon centered inside */}
                                 <VoiceOrbBlob state={studioState} level={orbLevel} size={orbBodySize} />
-
-                                {/* Waveform bars — anchored to the bottom of the circle */}
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: 0, left: 0, right: 0,
-                                    height: 72, pointerEvents: 'none',
-                                }}>
-                                    <Waveform active={running} levels={levels} />
-                                </div>
                             </div>
 
                             {/* Timer pill — overlaps the bottom edge of the inner circle */}
