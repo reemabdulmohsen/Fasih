@@ -15,17 +15,16 @@ class TranscribeController extends Controller
 
         $file = $request->file('audio');
 
-        $response = Http::withToken(config('services.openai.key'))
-            ->attach('file', file_get_contents($file->path()), 'audio.webm', ['Content-Type' => 'audio/webm'])
-            ->post('https://api.openai.com/v1/audio/transcriptions', [
-                'model'    => 'whisper-1',
-                'language' => 'ar',
+        $response = Http::withHeaders(['x-api-key' => config('services.munsit.key')])
+            ->attach('file', file_get_contents($file->path()), 'recording.webm', ['Content-Type' => 'audio/webm'])
+            ->post('https://api.munsit.com/api/v1/audio/transcribe', [
+                'model' => 'munsit',
             ]);
 
         if ($response->failed()) {
             return response()->json(['error' => 'Transcription failed'], 500);
         }
 
-        return response()->json(['transcript' => $response->json('text')]);
+        return response()->json(['transcript' => $response->json('transcription')]);
     }
 }

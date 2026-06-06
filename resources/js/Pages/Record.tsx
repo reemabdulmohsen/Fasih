@@ -31,7 +31,7 @@ const T = {
 } as const;
 
 type MicState    = 'checking' | 'available' | 'unavailable';
-type StudioState = 'idle' | 'connecting' | 'recording' | 'paused' | 'finished' | 'analyzing';
+type StudioState = 'idle' | 'recording' | 'paused' | 'finished' | 'transcribing' | 'analyzing';
 
 function loadTopic(): Topic {
     try {
@@ -41,40 +41,6 @@ function loadTopic(): Topic {
     return TOPICS[0];
 }
 
-// Runs inside an AudioWorklet — converts Float32 mic samples to Int16 PCM
-const PCM_PROCESSOR = `
-class PCMProcessor extends AudioWorkletProcessor {
-  process(inputs) {
-    const channel = inputs[0]?.[0];
-    if (channel) {
-      const int16 = new Int16Array(channel.length);
-      for (let i = 0; i < channel.length; i++) {
-        const s = Math.max(-1, Math.min(1, channel[i]));
-        int16[i] = s < 0 ? s * 32768 : s * 32767;
-      }
-      this.port.postMessage({ pcm: int16.buffer }, [int16.buffer]);
-    }
-    return true;
-  }
-}
-registerProcessor('pcm-processor', PCMProcessor);
-`;
-
-function makeWavHeader(sampleRate: number, pcmByteLength: number): Uint8Array {
-    const numChannels = 1, bitsPerSample = 16;
-    const byteRate = sampleRate * numChannels * bitsPerSample / 8;
-    const blockAlign = numChannels * bitsPerSample / 8;
-    const buf = new ArrayBuffer(44);
-    const v = new DataView(buf);
-    const s = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
-    s(0, 'RIFF'); v.setUint32(4, 36 + pcmByteLength, true); s(8, 'WAVE');
-    s(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
-    v.setUint16(22, numChannels, true); v.setUint32(24, sampleRate, true);
-    v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
-    v.setUint16(34, bitsPerSample, true);
-    s(36, 'data'); v.setUint32(40, pcmByteLength, true);
-    return new Uint8Array(buf);
-}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -242,26 +208,20 @@ export default function Record() {
     const [typedValue, setTypedValue]     = useState('');
     const [levels, setLevels]             = useState(() => Array<number>(BARS).fill(0));
     const [finished, setFinished]         = useState(false);
-    const [connecting, setConnecting]     = useState(false);
+    const [transcribing, setTranscribing] = useState(false);
     const [analyzing, setAnalyzing]       = useState(false);
     const [analyzeError, setAnalyzeError] = useState<string | null>(null);
     const [hintIdx, setHintIdx]           = useState(0);
     const [vw, setVw]                     = useState(1280);
 
-    const streamRef        = useRef<MediaStream | null>(null);
-    const wsRef            = useRef<WebSocket | null>(null);
-    const audioContextRef  = useRef<AudioContext | null>(null);
-    const workletNodeRef   = useRef<AudioWorkletNode | null>(null);
-    const sourceNodeRef    = useRef<MediaStreamAudioSourceNode | null>(null);
-    const tickRef          = useRef<ReturnType<typeof setInterval> | null>(null);
-    const levelRef         = useRef<ReturnType<typeof setInterval> | null>(null);
-    const pausedRef        = useRef(false);
-    const transcriptMapRef = useRef<Map<string, string>>(new Map());
-    const typedValueRef    = useRef('');
-    const silenceStartRef  = useRef<number | null>(null);
-    const longPausesRef    = useRef(0);
-    const firstChunkRef    = useRef(true);
-    const flushAudioRef    = useRef<(() => void) | null>(null);
+    const streamRef          = useRef<MediaStream | null>(null);
+    const mediaRecorderRef   = useRef<MediaRecorder | null>(null);
+    const recordedChunksRef  = useRef<Blob[]>([]);
+    const tickRef            = useRef<ReturnType<typeof setInterval> | null>(null);
+    const levelRef           = useRef<ReturnType<typeof setInterval> | null>(null);
+    const pausedRef          = useRef(false);
+    const typedValueRef      = useRef('');
+    const longPausesRef      = useRef(0);
 
     // ── Viewport width ─────────────────────────────────────────────
     useEffect(() => {
@@ -278,8 +238,7 @@ export default function Record() {
             .catch(() => setMicState('unavailable'));
         return () => {
             streamRef.current?.getTracks().forEach(t => t.stop());
-            wsRef.current?.close();
-            audioContextRef.current?.close();
+            if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
         };
     }, []);
 
@@ -292,7 +251,8 @@ export default function Record() {
                     clearInterval(tickRef.current!);
                     setRunning(false);
                     setFinished(true);
-                    commitAndDisconnect();
+                    if (mediaRecorderRef.current) stopAndTranscribe();
+                    else runAnalysis(typedValueRef.current);
                     return 0;
                 }
                 return t - 1;
@@ -300,43 +260,6 @@ export default function Record() {
         }, 1000);
         return () => clearInterval(tickRef.current!);
     }, [running]);
-
-    // ── Analyze then navigate ───────────────────────────────────────
-    useEffect(() => {
-        if (!finished) return;
-        let cancelled = false;
-        const run = async () => {
-            await new Promise(r => setTimeout(r, 3000));
-            if (cancelled) return;
-            setAnalyzing(true);
-            const text = micState === 'unavailable'
-                ? typedValueRef.current
-                : buildTranscript();
-            if (!text.trim()) {
-                if (!cancelled) {
-                    setAnalyzing(false);
-                    setAnalyzeError('لم يُسجَّل أي نصّ. تأكّد من أن الميكروفون يعمل وحاول من جديد.');
-                }
-                return;
-            }
-            try {
-                const analysis = await analyzeSpeech(text, longPausesRef.current, topic.ar);
-                if (!cancelled) {
-                    sessionStorage.setItem('fasih_analysis', JSON.stringify(analysis));
-                    router.visit('/report');
-                }
-            } catch (e) {
-                console.error('Analysis failed:', e);
-                if (!cancelled) {
-                    setAnalyzing(false);
-                    setAnalyzeError('فشل التحليل. تحقّق من الاتصال بالإنترنت أو مفتاح API وحاول مجدّداً.');
-                }
-            }
-        };
-        run();
-        return () => { cancelled = true; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [finished]);
 
     // ── Waveform sim ────────────────────────────────────────────────
     useEffect(() => {
@@ -353,222 +276,112 @@ export default function Record() {
         return () => clearInterval(t);
     }, []);
 
-    // ── Realtime helpers ───────────────────────────────────────────
-    const buildTranscript = () =>
-        Array.from(transcriptMapRef.current.values()).filter(Boolean).join(' ');
-
-    const handleEvent = (ev: Record<string, any>) => {
-        console.log('[Munsit event] type:', ev.event, 'full:', JSON.stringify(ev));
-        if (ev.event === 'transcription') {
-            const text: string = typeof ev.data === 'string'
-                ? ev.data
-                : (ev.data?.text ?? ev.data?.transcript ?? ev.transcript ?? '');
-            console.log('[Munsit transcription] resolved text:', JSON.stringify(text));
-            transcriptMapRef.current.set('current', text);
-            setTranscript(text);
-        } else if (ev.event === 'transcription_error') {
-            console.error('[Munsit transcription_error]', ev);
-        } else {
-            console.warn('[Munsit unknown event]', ev.event, ev);
-        }
-    };
-
-    const setupAudio = async () => {
+    // ── Recording helpers ──────────────────────────────────────────
+    const startRecording = () => {
         if (!streamRef.current) return;
-        const ctx = new AudioContext({ sampleRate: 16000 });
-        audioContextRef.current = ctx;
-        const blobUrl = URL.createObjectURL(new Blob([PCM_PROCESSOR], { type: 'application/javascript' }));
-        await ctx.audioWorklet.addModule(blobUrl);
-        URL.revokeObjectURL(blobUrl);
-        const source = ctx.createMediaStreamSource(streamRef.current);
-        const worklet = new AudioWorkletNode(ctx, 'pcm-processor');
-        sourceNodeRef.current = source;
-        workletNodeRef.current = worklet;
-        // Accumulate ~1 s of PCM before sending (16 000 samples × 2 bytes = 32 000 bytes)
-        const SEND_EVERY = 16000 * 2;
-        let accumBuf: Uint8Array[] = [];
-        let accumBytes = 0;
-
-        flushAudioRef.current = () => {
-            const ws = wsRef.current;
-            if (ws?.readyState === WebSocket.OPEN) flushAudio(ws);
+        recordedChunksRef.current = [];
+        const recorder = new MediaRecorder(streamRef.current);
+        recorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunksRef.current.push(e.data);
         };
-
-        const flushAudio = (ws: WebSocket) => {
-            if (accumBytes === 0) return;
-            const totalPcmBytes = accumBytes;
-            const combined = new Uint8Array(
-                (firstChunkRef.current ? 44 : 0) + totalPcmBytes,
-            );
-            let offset = 0;
-            if (firstChunkRef.current) {
-                firstChunkRef.current = false;
-                combined.set(makeWavHeader(16000, totalPcmBytes), 0);
-                offset = 44;
-            }
-            for (const chunk of accumBuf) { combined.set(chunk, offset); offset += chunk.length; }
-            accumBuf = [];
-            accumBytes = 0;
-            const isFirst = offset > 0;
-            const payload = { event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } };
-            console.log('[Munsit send] bytes:', combined.length, 'isFirstChunk(hasWAVHeader):', isFirst, 'WS state:', ws.readyState);
-            ws.send(JSON.stringify(payload));
-            console.log('[Munsit send] sent OK');
-        };
-
-        worklet.port.onmessage = (e: MessageEvent) => {
-            if (pausedRef.current) return;
-            const ws = wsRef.current;
-            if (ws?.readyState !== WebSocket.OPEN) return;
-            const pcm = e.data.pcm as ArrayBuffer;
-            const chunk = new Uint8Array(pcm);
-            accumBuf.push(chunk);
-            accumBytes += chunk.length;
-            if (accumBytes >= SEND_EVERY) flushAudio(ws);
-            const samples = new Int16Array(pcm);
-            let sumSq = 0;
-            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
-            const rms = Math.sqrt(sumSq / samples.length);
-            const now = Date.now();
-            if (rms < 800) {
-                if (silenceStartRef.current === null) silenceStartRef.current = now;
-                else if (now - silenceStartRef.current >= 1500) {
-                    longPausesRef.current += 1;
-                    silenceStartRef.current = null;
-                }
-            } else {
-                silenceStartRef.current = null;
-            }
-        };
-        source.connect(worklet);
-        worklet.connect(ctx.destination);
+        mediaRecorderRef.current = recorder;
+        recorder.start(1000);
     };
 
-    const connectRealtime = async () => {
-        setConnecting(true);
+    const runAnalysis = async (text: string) => {
+        if (!text.trim()) {
+            setAnalyzeError('لم يُسجَّل أي نصّ. تأكّد من أن الميكروفون يعمل وحاول من جديد.');
+            return;
+        }
+        setAnalyzing(true);
         try {
-            console.log('[Munsit] fetching session token…');
-            const res = await fetch('/api/realtime-session', { method: 'POST' });
-            console.log('[Munsit] /api/realtime-session status:', res.status);
-            if (!res.ok) {
-                const body = await res.text();
-                console.error('[Munsit] session endpoint error body:', body);
-                throw new Error('session error');
-            }
-            const json = await res.json();
-            console.log('[Munsit] session response keys:', Object.keys(json));
-            const { token } = json;
-            console.log('[Munsit token]', token ? `${String(token).slice(0, 8)}… (len=${String(token).length})` : 'EMPTY/UNDEFINED');
-            if (!token) {
-                console.error('[Munsit] token is missing from session response:', json);
-                setConnecting(false);
-                return;
-            }
-            firstChunkRef.current = true;
-            const wsUrl = `wss://api.munsit.com/api/v1/websocket/speech-to-text?token=${encodeURIComponent(token)}&model=munsit`;
-            console.log('[Munsit] connecting to:', wsUrl.replace(token, `${token.slice(0, 8)}…`));
-            const ws = new WebSocket(wsUrl);
-            wsRef.current = ws;
-            ws.onopen = async () => {
-                console.log('[Munsit] WS opened, setting up audio…');
-                await setupAudio();
-                console.log('[Munsit] audio ready, recording started');
-                setConnecting(false);
-                setRunning(true);
-            };
-            ws.onmessage = (e: MessageEvent) => {
-                console.log('[Munsit raw msg]', e.data);
-                try { handleEvent(JSON.parse(e.data)); } catch (err) {
-                    console.error('[Munsit] failed to parse message:', e.data, err);
-                }
-            };
-            ws.onerror = (err) => {
-                console.error('[Munsit WS error]', err);
-                setConnecting(false);
-            };
-            ws.onclose = (ev) => {
-                console.warn('[Munsit WS close] code:', ev.code, 'reason:', ev.reason, 'wasClean:', ev.wasClean);
-                wsRef.current = null;
-            };
-        } catch (err) {
-            console.error('[Munsit] connectRealtime caught:', err);
-            setConnecting(false);
+            const analysis = await analyzeSpeech(text, longPausesRef.current, topic.ar);
+            sessionStorage.setItem('fasih_analysis', JSON.stringify(analysis));
+            router.visit('/report');
+        } catch {
+            setAnalyzing(false);
+            setAnalyzeError('فشل التحليل. تحقّق من الاتصال بالإنترنت أو مفتاح API وحاول مجدّداً.');
         }
     };
 
-    const commitAndDisconnect = () => {
-        pausedRef.current = true;
-        flushAudioRef.current?.();
-        flushAudioRef.current = null;
-        const ws = wsRef.current;
-        if (ws?.readyState === WebSocket.OPEN) {
-            setTimeout(() => ws.close(), 3000);
+    const stopAndTranscribe = async () => {
+        const recorder = mediaRecorderRef.current;
+        if (recorder && recorder.state !== 'inactive') {
+            await new Promise<void>(resolve => {
+                recorder.addEventListener('stop', () => resolve(), { once: true });
+                recorder.stop();
+            });
         }
-        sourceNodeRef.current?.disconnect();
-        workletNodeRef.current?.disconnect();
-        audioContextRef.current?.close().catch(() => {});
-        audioContextRef.current = null;
-        sourceNodeRef.current   = null;
-        workletNodeRef.current  = null;
+        streamRef.current?.getTracks().forEach(t => t.stop());
+
+        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        recordedChunksRef.current = [];
+
+        if (blob.size === 0) { await runAnalysis(''); return; }
+
+        setTranscribing(true);
+        try {
+            const formData = new FormData();
+            formData.append('audio', blob, 'recording.webm');
+            const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('transcription failed');
+            const { transcript } = await res.json();
+            setTranscript(transcript ?? '');
+            setTranscribing(false);
+            await runAnalysis(transcript ?? '');
+        } catch {
+            setTranscribing(false);
+            setAnalyzeError('حدث خطأ في تحويل الصوت. حاول مرة أخرى.');
+        }
     };
 
     const start = () => {
         if (micState === 'available') {
-            if (!wsRef.current) {
+            if (!mediaRecorderRef.current) {
                 pausedRef.current = false;
-                firstChunkRef.current = true;
-                transcriptMapRef.current.clear();
-                setTranscript('');
-                silenceStartRef.current = null;
                 longPausesRef.current = 0;
-                connectRealtime();
+                setTranscript('');
+                startRecording();
             } else {
                 pausedRef.current = false;
-                setRunning(true);
+                if (mediaRecorderRef.current.state === 'paused') mediaRecorderRef.current.resume();
             }
-        } else {
-            setRunning(true);
         }
+        setRunning(true);
     };
 
     const pause = () => {
         setRunning(false);
         clearInterval(tickRef.current!);
         pausedRef.current = true;
+        if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.pause();
     };
 
     const finishNow = () => {
         setRunning(false);
         setFinished(true);
         clearInterval(tickRef.current!);
-        if (micState === 'available') commitAndDisconnect();
+        if (micState === 'available') stopAndTranscribe();
+        else runAnalysis(typedValueRef.current);
     };
 
     const reset = () => {
         setRunning(false);
         clearInterval(tickRef.current!);
         pausedRef.current = true;
-        flushAudioRef.current = null;
-        firstChunkRef.current = true;
-        wsRef.current?.close();
-        wsRef.current = null;
-        sourceNodeRef.current?.disconnect();
-        workletNodeRef.current?.disconnect();
-        audioContextRef.current?.close().catch(() => {});
-        audioContextRef.current = null;
-        sourceNodeRef.current   = null;
-        workletNodeRef.current  = null;
-        transcriptMapRef.current.clear();
+        if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+        mediaRecorderRef.current = null;
+        recordedChunksRef.current = [];
         setTranscript('');
         setTypedValue('');
         typedValueRef.current = '';
         setTimeLeft(DURATION);
         setFinished(false);
+        setTranscribing(false);
         setAnalyzing(false);
         setAnalyzeError(null);
         setLevels(Array<number>(BARS).fill(0));
         longPausesRef.current = 0;
-        silenceStartRef.current = null;
     };
 
     // ── Derived ────────────────────────────────────────────────────
@@ -588,20 +401,20 @@ export default function Record() {
     const orbBodySize = Math.round(stageSize * 240 / 460);
     const innerSize  = ringSize - 24; // inner bordered circle; leaves ~12px gap for the progress ring
 
-    const studioState: StudioState = analyzing ? 'analyzing'
-        : finished    ? 'finished'
-        : running     ? 'recording'
-        : connecting  ? 'connecting'
+    const studioState: StudioState = analyzing    ? 'analyzing'
+        : transcribing  ? 'transcribing'
+        : finished      ? 'finished'
+        : running       ? 'recording'
         : timeLeft === DURATION ? 'idle'
         : 'paused';
 
     const primaryLabel: Record<StudioState, string> = {
-        idle:       'ابدأ التسجيل',
-        connecting: 'جارٍ الاتصال…',
-        recording:  'إيقاف مؤقت',
-        paused:     'استئناف',
-        finished:   'تمّ التسجيل',
-        analyzing:  'جارٍ التحليل…',
+        idle:         'ابدأ التسجيل',
+        recording:    'إيقاف مؤقت',
+        paused:       'استئناف',
+        finished:     'تمّ التسجيل',
+        transcribing: 'جارٍ تحويل الصوت…',
+        analyzing:    'جارٍ التحليل…',
     };
 
     const handlePrimary = () => {
@@ -609,8 +422,8 @@ export default function Record() {
         else if (studioState === 'recording') pause();
     };
 
-    const canPrimary = studioState !== 'connecting'
-        && studioState !== 'finished'
+    const canPrimary = studioState !== 'finished'
+        && studioState !== 'transcribing'
         && studioState !== 'analyzing'
         && micState !== 'checking';
 
@@ -664,7 +477,7 @@ export default function Record() {
                     width: 1100, height: 1100, borderRadius: '50%',
                     background: 'radial-gradient(closest-side, var(--accent-glow2), transparent 70%)',
                     filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0,
-                    opacity: running ? 0.22 : (finished || analyzing) ? 0.28 : 0.12,
+                    opacity: running ? 0.22 : (finished || transcribing || analyzing) ? 0.28 : 0.12,
                     transition: 'opacity 0.8s ease',
                 }} />
 
@@ -928,9 +741,9 @@ export default function Record() {
                                     اضغط ابدأ لبدء التسجيل
                                 </span>
                             )}
-                            {studioState === 'connecting' && (
+                            {studioState === 'transcribing' && (
                                 <span style={{ color: T.ink3, fontWeight: 400, fontSize: 14, width: '100%', textAlign: 'center' }}>
-                                    جارٍ الاتصال بـ GPT-4o Realtime…
+                                    جارٍ تحويل الصوت إلى نصّ…
                                 </span>
                             )}
                             {(studioState === 'recording' || studioState === 'paused') && visible.length === 0 && (
@@ -1024,15 +837,15 @@ export default function Record() {
                             <button
                                 className="record-controls-primary"
                                 onClick={handlePrimary}
-                                disabled={studioState === 'connecting' || micState === 'checking'}
+                                disabled={micState === 'checking'}
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 14,
                                     justifyContent: 'center',
                                     background: T.accent, color: T.accentInk,
                                     border: 0, padding: '18px 36px 18px 28px', borderRadius: 999,
                                     fontSize: 16, fontWeight: 700,
-                                    cursor: (studioState === 'connecting' || micState === 'checking') ? 'not-allowed' : 'pointer',
-                                    opacity: (studioState === 'connecting' || micState === 'checking') ? 0.7 : 1,
+                                    cursor: micState === 'checking' ? 'not-allowed' : 'pointer',
+                                    opacity: micState === 'checking' ? 0.7 : 1,
                                     boxShadow: [
                                         '0 1px 0 color-mix(in srgb, var(--bg-card) 40%, transparent) inset',
                                         '0 -10px 30px color-mix(in srgb, var(--accent-dim) 80%, transparent) inset',
@@ -1043,14 +856,7 @@ export default function Record() {
                                 }}
                             >
                                 <span style={{ display: 'grid', placeItems: 'center' }}>
-                                    {studioState === 'connecting' ? (
-                                        <span style={{
-                                            width: 22, height: 22, borderRadius: '50%',
-                                            border: `3px solid ${T.accentInk}40`,
-                                            borderTopColor: T.accentInk,
-                                            animation: 'spin 0.7s linear infinite', display: 'block',
-                                        }} />
-                                    ) : studioState === 'recording' ? (
+                                    {studioState === 'recording' ? (
                                         <div style={{ display: 'flex', gap: 4 }}>
                                             <span style={{ width: 6, height: 22, background: 'currentColor', borderRadius: 2 }} />
                                             <span style={{ width: 6, height: 22, background: 'currentColor', borderRadius: 2 }} />
@@ -1122,16 +928,16 @@ export default function Record() {
                                 animation: studioState === 'recording' ? 'recordGlow 1.4s ease-in-out infinite' : 'none',
                             }} />
                             <span style={{ fontFamily: 'inherit', fontSize: 12 }}>
-                                {studioState === 'idle'      && 'جاهز للتسجيل'}
-                                {studioState === 'connecting' && 'جارٍ الاتصال…'}
-                                {studioState === 'recording' && 'يسجّل الآن'}
-                                {studioState === 'paused'    && 'متوقف مؤقتاً'}
+                                {studioState === 'idle'         && 'جاهز للتسجيل'}
+                                {studioState === 'recording'    && 'يسجّل الآن'}
+                                {studioState === 'paused'       && 'متوقف مؤقتاً'}
+                                {studioState === 'transcribing' && 'جارٍ التحويل…'}
                                 {(studioState === 'finished' || studioState === 'analyzing') && 'اكتملت الجلسة'}
                             </span>
                             {micState === 'available' && (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: T.ok, display: 'inline-block' }} />
-                                    GPT-4o Realtime
+                                    Munsit STT
                                 </span>
                             )}
                             {micState === 'unavailable' && (
@@ -1153,7 +959,7 @@ export default function Record() {
                             }}>R</kbd>
                             للإعادة
                             <span style={{ color: T.line2 }}>·</span>
-                            GPT-4o Realtime
+                            Munsit STT
                         </div>
                     </footer>
 
