@@ -405,7 +405,9 @@ export default function Record() {
             for (const chunk of accumBuf) { combined.set(chunk, offset); offset += chunk.length; }
             accumBuf = [];
             accumBytes = 0;
-            ws.send(JSON.stringify({ event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } }));
+            const payload = { event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } };
+            console.log('[Munsit send] bytes:', combined.length, 'firstChunk:', offset > 0);
+            ws.send(JSON.stringify(payload));
         };
 
         worklet.port.onmessage = (e: MessageEvent) => {
@@ -453,10 +455,11 @@ export default function Record() {
                 setRunning(true);
             };
             ws.onmessage = (e: MessageEvent) => {
+                console.log('[Munsit raw]', e.data);
                 try { handleEvent(JSON.parse(e.data)); } catch { /* ignore */ }
             };
-            ws.onerror = () => setConnecting(false);
-            ws.onclose = () => { wsRef.current = null; };
+            ws.onerror = (err) => { console.error('[Munsit error]', err); setConnecting(false); };
+            ws.onclose = (ev) => { console.warn('[Munsit close]', ev.code, ev.reason); wsRef.current = null; };
         } catch {
             setConnecting(false);
         }
