@@ -444,6 +444,7 @@ export default function Record() {
             const res = await fetch('/api/realtime-session', { method: 'POST' });
             if (!res.ok) throw new Error('session error');
             const { token } = await res.json();
+            console.log('[Munsit token]', token ? `${String(token).slice(0, 8)}…` : 'EMPTY');
             firstChunkRef.current = true;
             const ws = new WebSocket(
                 `wss://api.munsit.com/api/v1/websocket/speech-to-text?token=${encodeURIComponent(token)}&model=munsit`,
