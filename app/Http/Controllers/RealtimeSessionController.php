@@ -28,7 +28,16 @@ class RealtimeSessionController extends Controller
             ]);
 
         if ($response->failed()) {
-            return response()->json(['error' => 'Failed to create realtime session'], 500);
+            \Log::error('OpenAI realtime session failed', [
+                'status' => $response->status(),
+                'body'   => $response->json(),
+            ]);
+
+            return response()->json([
+                'error'   => 'Failed to create realtime session',
+                'details' => $response->json(),
+                'status'  => $response->status(),
+            ], 500);
         }
 
         return response()->json([
