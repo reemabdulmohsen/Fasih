@@ -358,14 +358,18 @@ export default function Record() {
         Array.from(transcriptMapRef.current.values()).filter(Boolean).join(' ');
 
     const handleEvent = (ev: Record<string, any>) => {
+        console.log('[Munsit event] type:', ev.event, 'full:', JSON.stringify(ev));
         if (ev.event === 'transcription') {
             const text: string = typeof ev.data === 'string'
                 ? ev.data
                 : (ev.data?.text ?? ev.data?.transcript ?? ev.transcript ?? '');
+            console.log('[Munsit transcription] resolved text:', JSON.stringify(text));
             transcriptMapRef.current.set('current', text);
             setTranscript(text);
         } else if (ev.event === 'transcription_error') {
-            console.error('[Munsit]', ev);
+            console.error('[Munsit transcription_error]', ev);
+        } else {
+            console.warn('[Munsit unknown event]', ev.event, ev);
         }
     };
 
@@ -405,9 +409,11 @@ export default function Record() {
             for (const chunk of accumBuf) { combined.set(chunk, offset); offset += chunk.length; }
             accumBuf = [];
             accumBytes = 0;
+            const isFirst = offset > 0;
             const payload = { event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } };
-            console.log('[Munsit send] bytes:', combined.length, 'firstChunk:', offset > 0);
+            console.log('[Munsit send] bytes:', combined.length, 'isFirstChunk(hasWAVHeader):', isFirst, 'WS state:', ws.readyState);
             ws.send(JSON.stringify(payload));
+            console.log('[Munsit send] sent OK');
         };
 
         worklet.port.onmessage = (e: MessageEvent) => {
@@ -441,27 +447,51 @@ export default function Record() {
     const connectRealtime = async () => {
         setConnecting(true);
         try {
+            console.log('[Munsit] fetching session token…');
             const res = await fetch('/api/realtime-session', { method: 'POST' });
-            if (!res.ok) throw new Error('session error');
-            const { token } = await res.json();
-            console.log('[Munsit token]', token ? `${String(token).slice(0, 8)}…` : 'EMPTY');
+            console.log('[Munsit] /api/realtime-session status:', res.status);
+            if (!res.ok) {
+                const body = await res.text();
+                console.error('[Munsit] session endpoint error body:', body);
+                throw new Error('session error');
+            }
+            const json = await res.json();
+            console.log('[Munsit] session response keys:', Object.keys(json));
+            const { token } = json;
+            console.log('[Munsit token]', token ? `${String(token).slice(0, 8)}… (len=${String(token).length})` : 'EMPTY/UNDEFINED');
+            if (!token) {
+                console.error('[Munsit] token is missing from session response:', json);
+                setConnecting(false);
+                return;
+            }
             firstChunkRef.current = true;
-            const ws = new WebSocket(
-                `wss://api.munsit.com/api/v1/websocket/speech-to-text?x-api-key=${encodeURIComponent(token)}&model=munsit`,
-            );
+            const wsUrl = `wss://api.munsit.com/api/v1/websocket/speech-to-text?token=${encodeURIComponent(token)}&model=munsit`;
+            console.log('[Munsit] connecting to:', wsUrl.replace(token, `${token.slice(0, 8)}…`));
+            const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
             ws.onopen = async () => {
+                console.log('[Munsit] WS opened, setting up audio…');
                 await setupAudio();
+                console.log('[Munsit] audio ready, recording started');
                 setConnecting(false);
                 setRunning(true);
             };
             ws.onmessage = (e: MessageEvent) => {
-                console.log('[Munsit raw]', e.data);
-                try { handleEvent(JSON.parse(e.data)); } catch { /* ignore */ }
+                console.log('[Munsit raw msg]', e.data);
+                try { handleEvent(JSON.parse(e.data)); } catch (err) {
+                    console.error('[Munsit] failed to parse message:', e.data, err);
+                }
             };
-            ws.onerror = (err) => { console.error('[Munsit error]', err); setConnecting(false); };
-            ws.onclose = (ev) => { console.warn('[Munsit close]', ev.code, ev.reason); wsRef.current = null; };
-        } catch {
+            ws.onerror = (err) => {
+                console.error('[Munsit WS error]', err);
+                setConnecting(false);
+            };
+            ws.onclose = (ev) => {
+                console.warn('[Munsit WS close] code:', ev.code, 'reason:', ev.reason, 'wasClean:', ev.wasClean);
+                wsRef.current = null;
+            };
+        } catch (err) {
+            console.error('[Munsit] connectRealtime caught:', err);
             setConnecting(false);
         }
     };
