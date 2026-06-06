@@ -22,8 +22,14 @@ class TranscribeController extends Controller
             ]);
 
         if ($response->failed()) {
+            \Log::error('Munsit transcription failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
             return response()->json(['error' => 'Transcription failed'], 500);
         }
+
+        \Log::info('Munsit transcription response', ['body' => $response->body()]);
 
         return response()->json(['transcript' => $response->json('transcription')]);
     }
