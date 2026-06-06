@@ -2,47 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Http;
-
 class RealtimeSessionController extends Controller
 {
     public function __invoke()
     {
-        $response = Http::withToken(config('services.openai.key'))
-            ->withHeaders(['OpenAI-Beta' => 'realtime=v1'])
-            ->post('https://api.openai.com/v1/realtime/sessions', [
-                'model' => 'gpt-4o-realtime-preview',
-                'modalities' => ['text'],
-                'instructions' => '',
-                'input_audio_format' => 'pcm16',
-                'input_audio_transcription' => [
-                    'model' => 'gpt-4o-transcribe',
-                    'language' => 'ar',
-                ],
-                'turn_detection' => [
-                    'type' => 'server_vad',
-                    'threshold' => 0.5,
-                    'prefix_padding_ms' => 300,
-                    'silence_duration_ms' => 600,
-                    'create_response' => false,
-                ],
-            ]);
+        $key = config('services.munsit.key');
 
-        if ($response->failed()) {
-            \Log::error('OpenAI realtime session failed', [
-                'status' => $response->status(),
-                'body'   => $response->json(),
-            ]);
-
-            return response()->json([
-                'error'   => 'Failed to create realtime session',
-                'details' => $response->json(),
-                'status'  => $response->status(),
-            ], 500);
+        if (!$key) {
+            return response()->json(['error' => 'Munsit API key not configured'], 500);
         }
 
-        return response()->json([
-            'client_secret' => $response->json('client_secret.value'),
-        ]);
+        return response()->json(['token' => $key]);
     }
 }

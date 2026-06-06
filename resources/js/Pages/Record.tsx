@@ -60,11 +60,20 @@ class PCMProcessor extends AudioWorkletProcessor {
 registerProcessor('pcm-processor', PCMProcessor);
 `;
 
-function toBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
-    let bin = '';
-    for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
+function makeWavHeader(sampleRate: number, pcmByteLength: number): Uint8Array {
+    const numChannels = 1, bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+    const blockAlign = numChannels * bitsPerSample / 8;
+    const buf = new ArrayBuffer(44);
+    const v = new DataView(buf);
+    const s = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    s(0, 'RIFF'); v.setUint32(4, 36 + pcmByteLength, true); s(8, 'WAVE');
+    s(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, numChannels, true); v.setUint32(24, sampleRate, true);
+    v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
+    v.setUint16(34, bitsPerSample, true);
+    s(36, 'data'); v.setUint32(40, pcmByteLength, true);
+    return new Uint8Array(buf);
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -251,6 +260,7 @@ export default function Record() {
     const typedValueRef    = useRef('');
     const silenceStartRef  = useRef<number | null>(null);
     const longPausesRef    = useRef(0);
+    const firstChunkRef    = useRef(true);
 
     // ── Viewport width ─────────────────────────────────────────────
     useEffect(() => {
@@ -347,23 +357,20 @@ export default function Record() {
         Array.from(transcriptMapRef.current.values()).filter(Boolean).join(' ');
 
     const handleEvent = (ev: Record<string, any>) => {
-        if (ev.type === 'conversation.item.input_audio_transcription.delta') {
-            transcriptMapRef.current.set(
-                ev.item_id,
-                (transcriptMapRef.current.get(ev.item_id) ?? '') + (ev.delta ?? ''),
-            );
-            setTranscript(buildTranscript());
-        } else if (ev.type === 'conversation.item.input_audio_transcription.completed') {
-            transcriptMapRef.current.set(ev.item_id, ev.transcript ?? '');
-            setTranscript(buildTranscript());
-        } else if (ev.type === 'error') {
-            console.error('[Realtime]', ev.error);
+        if (ev.event === 'transcription') {
+            const text: string = typeof ev.data === 'string'
+                ? ev.data
+                : (ev.data?.text ?? ev.data?.transcript ?? ev.transcript ?? '');
+            transcriptMapRef.current.set('current', text);
+            setTranscript(text);
+        } else if (ev.event === 'transcription_error') {
+            console.error('[Munsit]', ev);
         }
     };
 
     const setupAudio = async () => {
         if (!streamRef.current) return;
-        const ctx = new AudioContext({ sampleRate: 24000 });
+        const ctx = new AudioContext({ sampleRate: 16000 });
         audioContextRef.current = ctx;
         const blobUrl = URL.createObjectURL(new Blob([PCM_PROCESSOR], { type: 'application/javascript' }));
         await ctx.audioWorklet.addModule(blobUrl);
@@ -376,8 +383,19 @@ export default function Record() {
             if (pausedRef.current) return;
             const ws = wsRef.current;
             if (ws?.readyState !== WebSocket.OPEN) return;
-            ws.send(JSON.stringify({ type: 'input_audio_buffer.append', audio: toBase64(e.data.pcm) }));
-            const samples = new Int16Array(e.data.pcm);
+            const pcm = e.data.pcm as ArrayBuffer;
+            let bytes: Uint8Array;
+            if (firstChunkRef.current) {
+                firstChunkRef.current = false;
+                const header = makeWavHeader(16000, pcm.byteLength);
+                bytes = new Uint8Array(header.length + pcm.byteLength);
+                bytes.set(header, 0);
+                bytes.set(new Uint8Array(pcm), header.length);
+            } else {
+                bytes = new Uint8Array(pcm);
+            }
+            ws.send(JSON.stringify({ event: 'audio_chunk', data: { audioBuffer: Array.from(bytes) } }));
+            const samples = new Int16Array(pcm);
             let sumSq = 0;
             for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
             const rms = Math.sqrt(sumSq / samples.length);
@@ -401,29 +419,13 @@ export default function Record() {
         try {
             const res = await fetch('/api/realtime-session', { method: 'POST' });
             if (!res.ok) throw new Error('session error');
-            const { client_secret } = await res.json();
+            const { token } = await res.json();
+            firstChunkRef.current = true;
             const ws = new WebSocket(
-                'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
-                ['realtime', `openai-insecure-api-key.${client_secret}`, 'openai-beta.realtime-v1'],
+                `wss://api.munsit.com/api/v1/websocket/speech-to-text?token=${encodeURIComponent(token)}&model=munsit`,
             );
             wsRef.current = ws;
             ws.onopen = async () => {
-                ws.send(JSON.stringify({
-                    type: 'session.update',
-                    session: {
-                        modalities: ['text'],
-                        instructions: '',
-                        input_audio_format: 'pcm16',
-                        input_audio_transcription: { model: 'gpt-4o-transcribe', language: 'ar' },
-                        turn_detection: {
-                            type: 'server_vad',
-                            threshold: 0.5,
-                            prefix_padding_ms: 300,
-                            silence_duration_ms: 600,
-                            create_response: false,
-                        },
-                    },
-                }));
                 await setupAudio();
                 setConnecting(false);
                 setRunning(true);
@@ -456,6 +458,7 @@ export default function Record() {
         if (micState === 'available') {
             if (!wsRef.current) {
                 pausedRef.current = false;
+                firstChunkRef.current = true;
                 transcriptMapRef.current.clear();
                 setTranscript('');
                 silenceStartRef.current = null;

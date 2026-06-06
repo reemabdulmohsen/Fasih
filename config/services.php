@@ -39,4 +39,8 @@ return [
         'key' => env('OPENAI_API_KEY'),
     ],
 
+    'munsit' => [
+        'key' => env('MUNSIT_API_KEY'),
+    ],
+
 ];
