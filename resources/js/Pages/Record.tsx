@@ -261,6 +261,7 @@ export default function Record() {
     const silenceStartRef  = useRef<number | null>(null);
     const longPausesRef    = useRef(0);
     const firstChunkRef    = useRef(true);
+    const flushAudioRef    = useRef<(() => void) | null>(null);
 
     // ── Viewport width ─────────────────────────────────────────────
     useEffect(() => {
@@ -379,22 +380,43 @@ export default function Record() {
         const worklet = new AudioWorkletNode(ctx, 'pcm-processor');
         sourceNodeRef.current = source;
         workletNodeRef.current = worklet;
+        // Accumulate ~1 s of PCM before sending (16 000 samples × 2 bytes = 32 000 bytes)
+        const SEND_EVERY = 16000 * 2;
+        let accumBuf: Uint8Array[] = [];
+        let accumBytes = 0;
+
+        flushAudioRef.current = () => {
+            const ws = wsRef.current;
+            if (ws?.readyState === WebSocket.OPEN) flushAudio(ws);
+        };
+
+        const flushAudio = (ws: WebSocket) => {
+            if (accumBytes === 0) return;
+            const totalPcmBytes = accumBytes;
+            const combined = new Uint8Array(
+                (firstChunkRef.current ? 44 : 0) + totalPcmBytes,
+            );
+            let offset = 0;
+            if (firstChunkRef.current) {
+                firstChunkRef.current = false;
+                combined.set(makeWavHeader(16000, totalPcmBytes), 0);
+                offset = 44;
+            }
+            for (const chunk of accumBuf) { combined.set(chunk, offset); offset += chunk.length; }
+            accumBuf = [];
+            accumBytes = 0;
+            ws.send(JSON.stringify({ event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } }));
+        };
+
         worklet.port.onmessage = (e: MessageEvent) => {
             if (pausedRef.current) return;
             const ws = wsRef.current;
             if (ws?.readyState !== WebSocket.OPEN) return;
             const pcm = e.data.pcm as ArrayBuffer;
-            let bytes: Uint8Array;
-            if (firstChunkRef.current) {
-                firstChunkRef.current = false;
-                const header = makeWavHeader(16000, pcm.byteLength);
-                bytes = new Uint8Array(header.length + pcm.byteLength);
-                bytes.set(header, 0);
-                bytes.set(new Uint8Array(pcm), header.length);
-            } else {
-                bytes = new Uint8Array(pcm);
-            }
-            ws.send(JSON.stringify({ event: 'audio_chunk', data: { audioBuffer: Array.from(bytes) } }));
+            const chunk = new Uint8Array(pcm);
+            accumBuf.push(chunk);
+            accumBytes += chunk.length;
+            if (accumBytes >= SEND_EVERY) flushAudio(ws);
             const samples = new Int16Array(pcm);
             let sumSq = 0;
             for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
@@ -442,6 +464,8 @@ export default function Record() {
 
     const commitAndDisconnect = () => {
         pausedRef.current = true;
+        flushAudioRef.current?.();
+        flushAudioRef.current = null;
         const ws = wsRef.current;
         if (ws?.readyState === WebSocket.OPEN) {
             setTimeout(() => ws.close(), 3000);
@@ -490,6 +514,8 @@ export default function Record() {
         setRunning(false);
         clearInterval(tickRef.current!);
         pausedRef.current = true;
+        flushAudioRef.current = null;
+        firstChunkRef.current = true;
         wsRef.current?.close();
         wsRef.current = null;
         sourceNodeRef.current?.disconnect();
