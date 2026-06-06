@@ -447,7 +447,7 @@ export default function Record() {
             console.log('[Munsit token]', token ? `${String(token).slice(0, 8)}…` : 'EMPTY');
             firstChunkRef.current = true;
             const ws = new WebSocket(
-                `wss://api.munsit.com/api/v1/websocket/speech-to-text?token=${encodeURIComponent(token)}&model=munsit`,
+                `wss://api.munsit.com/api/v1/websocket/speech-to-text?x-api-key=${encodeURIComponent(token)}&model=munsit`,
             );
             wsRef.current = ws;
             ws.onopen = async () => {
