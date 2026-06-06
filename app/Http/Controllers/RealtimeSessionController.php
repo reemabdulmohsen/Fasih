@@ -9,6 +9,7 @@ class RealtimeSessionController extends Controller
     public function __invoke()
     {
         $response = Http::withToken(config('services.openai.key'))
+            ->withHeaders(['OpenAI-Beta' => 'realtime=v1'])
             ->post('https://api.openai.com/v1/realtime/sessions', [
                 'model' => 'gpt-4o-realtime-preview',
                 'modalities' => ['text'],
