@@ -68,7 +68,7 @@ export default function Welcome() {
                 minHeight: '100vh',
                 background: T.bg,
                 color: T.ink,
-                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                fontFamily: 'var(--f-ar)',
                 display: 'grid',
                 gridTemplateRows: 'auto 1fr auto',
                 position: 'relative',
@@ -170,11 +170,11 @@ export default function Welcome() {
                     }}>
 
                         {/* Main title */}
-                        <h1 style={{
-                            fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                        <h1 className="ar-flow" style={{
+                            fontFamily: 'var(--f-display)',
                             fontSize: 'clamp(72px, 18vw, 120px)',
-                            fontWeight: 700,
-                            lineHeight: 1.1,
+                            fontWeight: 900,
+                            lineHeight: 1.2,
                             margin: '0 0 20px',
                             color: T.ink,
                         }}>
@@ -183,7 +183,7 @@ export default function Welcome() {
 
                         {/* Subtitle */}
                         <p style={{
-                            fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                            fontFamily: 'var(--f-ar)',
                             fontSize: 'clamp(15px, 3vw, 17px)',
                             color: T.ink3,
                             margin: '0 auto 48px',
@@ -206,7 +206,7 @@ export default function Welcome() {
                                 border: `1px solid ${T.accent}`,
                                 background: T.accent,
                                 color: T.accentInk,
-                                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                                fontFamily: 'var(--f-ar)',
                                 fontSize: 16, fontWeight: 700,
                                 cursor: 'pointer',
                                 boxShadow: '0 0 20px var(--accent-glow2), 0 4px 16px rgba(0,0,0,0.12)',
@@ -237,7 +237,7 @@ export default function Welcome() {
                                     padding: '6px 14px',
                                     border: `1px solid ${T.line2}`,
                                     borderRadius: 999,
-                                    fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                                    fontFamily: 'var(--f-ar)',
                                     fontSize: 13,
                                     color: T.ink3,
                                     background: T.surface,

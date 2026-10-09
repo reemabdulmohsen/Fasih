@@ -1,5 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
+/* ── Thmanyah (Arabic type) ────────────────────────────────────
+   Files are NOT in git (license forbids redistributing them).
+   Download from https://font.thmanyah.com and place the woff2 files in
+   public/fonts/thmanyah/. Without them the stacks fall back to IBM Plex. */
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/thmanyah/thmanyahsans-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/thmanyah/thmanyahsans-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/thmanyah/thmanyahsans-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/thmanyah/thmanyahsans-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/thmanyah/thmanyahsans-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/thmanyah/thmanyahserifdisplay-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/thmanyah/thmanyahserifdisplay-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/thmanyah/thmanyahserifdisplay-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/thmanyah/thmanyahserifdisplay-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/thmanyah/thmanyahserifdisplay-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/thmanyah/thmanyahseriftext-Light.woff2') format('woff2'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/thmanyah/thmanyahseriftext-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/thmanyah/thmanyahseriftext-Medium.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/thmanyah/thmanyahseriftext-Bold.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/thmanyah/thmanyahseriftext-Black.woff2') format('woff2'); font-weight: 900; font-style: normal; font-display: swap; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +52,9 @@
     --fix:       #1FA45A;
     --fix-bg:    rgba(31, 164, 90, 0.12);
     /* Fonts */
-    --f-ar:   'Readex Pro', 'Tajawal', sans-serif;
+    --f-ar:      'Thmanyah Sans', 'IBM Plex Sans Arabic', 'Readex Pro', sans-serif;
+    --f-display: 'Thmanyah Serif Display', 'Thmanyah Serif Text', 'IBM Plex Sans Arabic', serif;
+    --f-serif:   'Thmanyah Serif Text', 'Thmanyah Serif Display', 'IBM Plex Sans Arabic', serif;
     --f-en:   'IBM Plex Sans', system-ui, sans-serif;
     --f-mono: 'IBM Plex Mono', ui-monospace, monospace;
     /* Easing */
@@ -153,6 +175,22 @@ body {
 }
 
 /* ── Shared utilities ──────────────────────────────────────── */
+/* Flowing letters (Thmanyah Stylistic Alternates) — display headlines only */
+.ar-flow { font-feature-settings: "salt" 1; }
+
+/* Highlighter block behind one key word per headline */
+.ar-mark {
+    background: var(--accent-glow);
+    color: var(--ink);
+    padding: 0 0.18em;
+    border-radius: 4px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+/* Arabic never takes letter-spacing; tracking breaks the joins */
+[dir="rtl"], .ar { letter-spacing: 0; }
+
 .glow-accent {
     filter: drop-shadow(0 0 8px var(--accent-glow));
 }

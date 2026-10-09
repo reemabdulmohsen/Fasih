@@ -90,10 +90,16 @@ resources/js/
 ### Design Tokens
 
 All colours, fonts, and easing are CSS variables defined in `resources/css/app.css`:
-- `--accent` (#f0b64a) — primary gold
+- `--accent` (#1859FF light / #4A7AFF dark) — primary blue
 - `--err` / `--fix` — error red / correction green
-- `--f-ar` — Arabic font stack (Readex Pro, Tajawal)
-- `--f-mono` — IBM Plex Mono
+- `--f-ar` — Arabic UI: Thmanyah Sans (falls back to IBM Plex Sans Arabic)
+- `--f-display` — headlines and the فصيح wordmark: Thmanyah Serif Display
+- `--f-serif` — reading text (transcripts, feedback): Thmanyah Serif Text
+- `--f-mono` — IBM Plex Mono for timers, ids and eyebrows
+
+Thmanyah font files are NOT committed (the license forbids redistribution). Download them from https://font.thmanyah.com and put the woff2 files in `public/fonts/thmanyah/` (gitignored).
+
+Arabic type rules: never letter-space Arabic; `.ar-flow` (flowing letters) on display headlines only; `.ar-mark` highlights one key word per headline; kashida at most once, on the last word of a display line.
 
 Use CSS variables for all styling; avoid hardcoding colour values.
 
