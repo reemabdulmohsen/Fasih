@@ -78,7 +78,7 @@ export default function Report() {
                 minHeight: '100vh',
                 background: T.bg,
                 color: T.ink,
-                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                fontFamily: 'var(--f-ar)',
                 position: 'relative',
                 overflowX: 'hidden',
             }}>
@@ -117,7 +117,7 @@ export default function Report() {
                     borderTopColor: T.accent,
                     animation: 'spin 0.8s linear infinite',
                 }} />
-                <span style={{ fontFamily: '"IBM Plex Sans Arabic", sans-serif', fontSize: 16, color: T.ink3 }}>
+                <span style={{ fontFamily: 'var(--f-ar)', fontSize: 16, color: T.ink3 }}>
                     جارٍ تحميل التقرير…
                 </span>
             </div>
@@ -130,7 +130,7 @@ export default function Report() {
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center', minHeight: '100vh', gap: 20, padding: '0 24px',
             }}>
-                <span style={{ fontFamily: '"IBM Plex Sans Arabic", sans-serif', fontSize: 16, color: T.danger, textAlign: 'center' }}>
+                <span style={{ fontFamily: 'var(--f-ar)', fontSize: 16, color: T.danger, textAlign: 'center' }}>
                     لم يُعثر على نتائج جلسة. يرجى تسجيل جلسة جديدة.
                 </span>
                 <button onClick={() => router.visit('/home')} style={ghostBtnStyle}>
@@ -194,7 +194,7 @@ export default function Report() {
                             تقرير الجلسة 
                         </div>
                         <h1 dir="rtl" style={{
-                            fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                            fontFamily: 'var(--f-display)',
                             fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 700,
                             margin: '0 0 12px', letterSpacing: '-0.015em',
                             color: T.ink, lineHeight: 1.25,
@@ -202,7 +202,7 @@ export default function Report() {
                             {heroTitle(analysis.weighted_total)}
                         </h1>
                         <p dir="rtl" style={{
-                            fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                            fontFamily: 'var(--f-ar)',
                             fontSize: 15, color: T.ink3, margin: 0,
                             fontWeight: 300, maxWidth: 480, lineHeight: 1.8,
                         }}>
@@ -260,7 +260,7 @@ export default function Report() {
                                 justifyContent: 'space-between', marginBottom: 12,
                             }}>
                                 <span style={{
-                                    fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                                    fontFamily: 'var(--f-ar)',
                                     fontSize: 13, color: T.ink, fontWeight: 500,
                                 }}>
                                     {d.ar}
@@ -311,7 +311,7 @@ export default function Report() {
                         {analysis.pronunciation.errors.length > 0 && (
                             <div style={{ marginTop: 14 }}>
                                 <div style={{
-                                    fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                    fontFamily: 'var(--f-ar)',
                                     fontSize: 11, color: T.ink3, marginBottom: 8,
                                 }}>
                                     أخطاء ملاحظة:
@@ -319,7 +319,7 @@ export default function Report() {
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                     {analysis.pronunciation.errors.map((err, i) => (
                                         <span key={i} style={{
-                                            fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                            fontFamily: 'var(--f-ar)',
                                             fontSize: 12, padding: '3px 10px', borderRadius: 6,
                                             background: 'color-mix(in srgb, var(--err) 10%, transparent)',
                                             border: '1px solid color-mix(in srgb, var(--err) 25%, transparent)',
@@ -337,7 +337,7 @@ export default function Report() {
                         {analysis.discourse.filler_count > 0 && (
                             <div style={{ marginTop: 14 }}>
                                 <div style={{
-                                    fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                    fontFamily: 'var(--f-ar)',
                                     fontSize: 11, color: T.ink3, marginBottom: 8,
                                 }}>
                                     كلمات الحشو ({analysis.discourse.filler_count} مرة):
@@ -345,7 +345,7 @@ export default function Report() {
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                     {analysis.discourse.filler_words.map((w, i) => (
                                         <span key={i} style={{
-                                            fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                            fontFamily: 'var(--f-ar)',
                                             fontSize: 12, padding: '3px 10px', borderRadius: 6,
                                             background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
                                             border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
@@ -362,7 +362,7 @@ export default function Report() {
                     <DetailCard title="الطلاقة" score={analysis.fluency.score} explanation={analysis.fluency.explanation}>
                         {analysis.fluency.long_pauses_count > 0 && (
                             <div style={{
-                                marginTop: 14, fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                marginTop: 14, fontFamily: 'var(--f-ar)',
                                 fontSize: 13, color: T.ink3, lineHeight: 1.6,
                             }}>
                                 توقفات طويلة ({'>'} 1.5 ث):{' '}
@@ -408,13 +408,13 @@ export default function Report() {
                             flexWrap: 'wrap',
                         }}>
                             <span style={{
-                                fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                fontFamily: 'var(--f-ar)',
                                 fontSize: 15, fontWeight: 600, color: T.ink,
                             }}>
                                 الصلة بالموضوع
                             </span>
                             <span style={{
-                                fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                fontFamily: 'var(--f-ar)',
                                 fontSize: 12, padding: '2px 10px', borderRadius: 999,
                                 background: `color-mix(in srgb, ${SCORE_COLOR[analysis.topic_relevance.score]} 10%, transparent)`,
                                 border: `1px solid color-mix(in srgb, ${SCORE_COLOR[analysis.topic_relevance.score]} 25%, transparent)`,
@@ -424,7 +424,7 @@ export default function Report() {
                             </span>
                         </div>
                         <p dir="rtl" style={{
-                            fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                            fontFamily: 'var(--f-ar)',
                             fontSize: 14, color: T.ink3, lineHeight: 1.8, margin: 0,
                         }}>
                             {analysis.topic_relevance.explanation}
@@ -439,7 +439,7 @@ export default function Report() {
                         borderRadius: 16, padding: '22px 24px', marginBottom: 32,
                     }}>
                         <div style={{
-                            fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                            fontFamily: 'var(--f-ar)',
                             fontSize: 14, fontWeight: 600,
                             marginBottom: 16, color: T.ink,
                             display: 'flex', alignItems: 'center', gap: 8,
@@ -469,7 +469,7 @@ export default function Report() {
                                         flexShrink: 0, marginTop: 2, fontSize: 14,
                                     }}>›</span>
                                     <span style={{
-                                        fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                                        fontFamily: 'var(--f-ar)',
                                         fontSize: 14, color: T.ink, lineHeight: 1.65,
                                     }}>
                                         {flag}
@@ -531,13 +531,13 @@ function DetailCard({ title, score, explanation, children }: {
                 marginBottom: 12,
             }}>
                 <span style={{
-                    fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                    fontFamily: 'var(--f-ar)',
                     fontSize: 15, fontWeight: 600, color: T.ink,
                 }}>
                     {title}
                 </span>
                 <span style={{
-                    fontFamily: '"IBM Plex Sans Arabic", sans-serif',
+                    fontFamily: 'var(--f-ar)',
                     fontSize: 11, padding: '3px 10px', borderRadius: 999,
                     background: `color-mix(in srgb, ${SCORE_COLOR[score]} 10%, transparent)`,
                     border: `1px solid color-mix(in srgb, ${SCORE_COLOR[score]} 25%, transparent)`,
@@ -547,7 +547,7 @@ function DetailCard({ title, score, explanation, children }: {
                 </span>
             </div>
             <p dir="rtl" style={{
-                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                fontFamily: 'var(--f-ar)',
                 fontSize: 14, color: T.ink3, lineHeight: 1.8, margin: 0,
             }}>
                 {explanation}
@@ -561,7 +561,7 @@ function CheckBadge({ label, checked }: { label: string; checked: boolean }) {
     return (
         <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: '"IBM Plex Sans Arabic", sans-serif', fontSize: 12,
+            fontFamily: 'var(--f-ar)', fontSize: 12,
             padding: '4px 10px', borderRadius: 999,
             background: checked
                 ? 'color-mix(in srgb, var(--fix) 10%, transparent)'
@@ -590,7 +590,7 @@ const ghostBtnStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '11px 22px', borderRadius: 10,
     border: `1px solid ${T.line}`, background: 'transparent',
-    color: T.ink, fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+    color: T.ink, fontFamily: 'var(--f-ar)',
     fontSize: 14, fontWeight: 500, cursor: 'pointer',
     transition: 'border-color 0.2s, color 0.2s',
 };

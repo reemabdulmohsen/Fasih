@@ -26,6 +26,10 @@ cp .env.example .env
 php artisan key:generate
 ```
 
+### Fonts
+
+Fasih's Arabic type is the Thmanyah family (Sans, Serif Display, Serif Text). The font files aren't in the repo because the Thmanyah license forbids redistributing them. Download the family from https://font.thmanyah.com and copy the 15 `.woff2` files into `public/fonts/thmanyah/` (this folder is gitignored). Without them the UI falls back to IBM Plex Sans Arabic.
+
 ## Development
 
 ```bash

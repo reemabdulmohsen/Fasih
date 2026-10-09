@@ -608,7 +608,7 @@ export default function Record() {
                     minHeight: '100vh',
                     background: T.bg,
                     color: T.ink,
-                    fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                    fontFamily: 'var(--f-ar)',
                     display: 'grid',
                     gridTemplateRows: 'auto 1fr',
                     overflow: 'hidden',
@@ -697,6 +697,7 @@ export default function Record() {
                             </span> 
                         </div>
                         <h1 style={{
+                            fontFamily: 'var(--f-display)',
                             fontSize: 'clamp(26px, 3.2vw, 44px)',
                             fontWeight: 700, lineHeight: 1.25,
                             letterSpacing: '-0.015em',

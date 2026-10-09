@@ -21,3 +21,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Thmanyah font files (license forbids redistribution — see README)
+/public/fonts/thmanyah

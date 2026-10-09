@@ -114,7 +114,7 @@ export default function Home() {
                 minHeight: '100vh',
                 background: T.bg,
                 color: T.ink,
-                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                fontFamily: 'var(--f-ar)',
                 display: 'grid',
                 gridTemplateRows: 'auto 1fr',
                 overflow: 'hidden',
@@ -201,7 +201,7 @@ export default function Home() {
                         <div style={{
                             display: 'flex', flexDirection: 'column', alignItems: 'center',
                             gap: 16, color: T.ink3,
-                            fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                            fontFamily: 'var(--f-ar)',
                             fontSize: 15,
                         }}>
                             <div style={{
@@ -253,7 +253,7 @@ export default function Home() {
                                         borderRadius: 999,
                                         color: T.accent,
                                         background: `color-mix(in srgb, ${T.accent} 10%, transparent)`,
-                                        fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                                        fontFamily: 'var(--f-ar)',
                                         fontSize: 12, fontWeight: 600,
                                     }}>
                                         <span style={{
@@ -283,6 +283,7 @@ export default function Home() {
 
                                 {/* Topic title */}
                                 <h1 dir="rtl" style={{
+                                    fontFamily: 'var(--f-display)',
                                     fontSize: 'clamp(22px, 4vw, 38px)',
                                     fontWeight: 700, lineHeight: 1.4,
                                     letterSpacing: '-0.01em',
@@ -337,7 +338,7 @@ export default function Home() {
                                                 0{i + 1}
                                             </span>
                                             <span dir="rtl" style={{
-                                                fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+                                                fontFamily: 'var(--f-ar)',
                                                 fontSize: 14, color: T.ink2, lineHeight: 1.6,
                                             }}>
                                                 {h.ar}
@@ -416,7 +417,7 @@ const baseBtnStyle: React.CSSProperties = {
     border: `1px solid ${T.line2}`,
     background: 'transparent',
     color: T.ink2,
-    fontFamily: '"IBM Plex Sans Arabic", "Readex Pro", sans-serif',
+    fontFamily: 'var(--f-ar)',
     fontSize: 15, fontWeight: 500, cursor: 'pointer',
     transition: 'transform 0.2s ease, box-shadow 0.2s, border-color 0.2s, color 0.2s',
 };
