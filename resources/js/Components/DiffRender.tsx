@@ -3,7 +3,7 @@ import type { DiffSegment } from '@/types/fasih';
 export default function DiffRender({ segments }: { segments: DiffSegment[] }) {
     return (
         <div dir="rtl" style={{
-            fontFamily: 'var(--f-ar)', fontSize: 19, lineHeight: 2.1, color: 'var(--ink)',
+            fontFamily: 'var(--f-serif)', fontSize: 19, lineHeight: 2.1, color: 'var(--ink)',
         }}>
             {segments.map((seg, i) => {
                 if (seg.type === 'ok') return <span key={i}>{seg.text}</span>;

@@ -12,10 +12,12 @@ export default function Ring({ size, stroke, progress, warn = false, glow = fals
     const c = 2 * Math.PI * r;
     const clamped = Math.max(0, Math.min(1, progress));
     const off = c * (1 - clamped);
-    const trackColor = warn ? 'rgba(239,106,92,0.15)' : 'rgba(124,109,233,0.12)';
+    const trackColor = warn
+        ? 'color-mix(in srgb, var(--err) 15%, transparent)'
+        : 'color-mix(in srgb, var(--accent) 12%, transparent)';
     const strokeColor = warn ? 'var(--err)' : 'var(--accent)';
     const glowFilter = warn
-        ? 'drop-shadow(0 0 6px rgba(239,106,92,0.5))'
+        ? 'drop-shadow(0 0 6px color-mix(in srgb, var(--err) 50%, transparent))'
         : 'drop-shadow(0 0 8px var(--accent-glow))';
 
     return (

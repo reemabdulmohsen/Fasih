@@ -19,7 +19,7 @@ export default function ScoreRing({ value, arLabel }: ScoreRingProps) {
                     }}
                 >
                     <circle cx={29} cy={29} r={r} strokeWidth={3} fill="none"
-                        stroke="rgba(124,109,233,0.12)" strokeLinecap="round" />
+                        stroke="color-mix(in srgb, var(--accent) 12%, transparent)" strokeLinecap="round" />
                     <circle
                         cx={29} cy={29} r={r} strokeWidth={3} fill="none"
                         stroke="var(--accent)" strokeLinecap="round"
