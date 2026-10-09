@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { StepId } from '@/Components/Stepper';
+
+export type StepId = 'topic' | 'record' | 'report' | 'review' | 'final';
 
 interface TopBarProps {
     step: StepId;
