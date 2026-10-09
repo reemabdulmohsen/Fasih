@@ -8,10 +8,11 @@ class RealtimeSessionController extends Controller
     {
         $key = config('services.munsit.key');
 
-        if (!$key) {
+        if (! $key) {
             return response()->json(['error' => 'Munsit API key not configured'], 500);
         }
 
+        // ponytail: raw key to browser — Munsit has no ephemeral tokens; add a WS proxy if this ever goes public
         return response()->json(['token' => $key]);
     }
 }

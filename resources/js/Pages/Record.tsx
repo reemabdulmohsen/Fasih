@@ -41,6 +41,48 @@ function loadTopic(): Topic {
     return TOPICS[0];
 }
 
+// Safari records MP4/AAC, Chrome/Firefox WebM — Munsit needs the label to match the bytes
+function pickAudioFormat() {
+    const mime = ['audio/webm', 'audio/mp4'].find(t => MediaRecorder.isTypeSupported(t));
+    return { mime, ext: mime === 'audio/mp4' ? 'm4a' : 'webm' };
+}
+
+// Runs inside an AudioWorklet — converts Float32 mic samples to Int16 PCM for Munsit streaming
+const PCM_PROCESSOR = `
+class PCMProcessor extends AudioWorkletProcessor {
+  process(inputs) {
+    const channel = inputs[0]?.[0];
+    if (channel) {
+      const int16 = new Int16Array(channel.length);
+      for (let i = 0; i < channel.length; i++) {
+        const s = Math.max(-1, Math.min(1, channel[i]));
+        int16[i] = s < 0 ? s * 32768 : s * 32767;
+      }
+      this.port.postMessage({ pcm: int16.buffer }, [int16.buffer]);
+    }
+    return true;
+  }
+}
+registerProcessor('pcm-processor', PCMProcessor);
+`;
+
+// Munsit's streaming API requires the first chunk to carry WAV headers
+function makeWavHeader(sampleRate: number, pcmByteLength: number): Uint8Array {
+    const numChannels = 1, bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+    const blockAlign = numChannels * bitsPerSample / 8;
+    const buf = new ArrayBuffer(44);
+    const v = new DataView(buf);
+    const s = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    s(0, 'RIFF'); v.setUint32(4, 36 + pcmByteLength, true); s(8, 'WAVE');
+    s(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, numChannels, true); v.setUint32(24, sampleRate, true);
+    v.setUint32(28, byteRate, true); v.setUint16(32, blockAlign, true);
+    v.setUint16(34, bitsPerSample, true);
+    s(36, 'data'); v.setUint32(40, pcmByteLength, true);
+    return new Uint8Array(buf);
+}
+
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -222,6 +264,12 @@ export default function Record() {
     const pausedRef          = useRef(false);
     const typedValueRef      = useRef('');
     const longPausesRef      = useRef(0);
+    const wsRef              = useRef<WebSocket | null>(null);
+    const audioContextRef    = useRef<AudioContext | null>(null);
+    const sourceNodeRef      = useRef<MediaStreamAudioSourceNode | null>(null);
+    const workletNodeRef     = useRef<AudioWorkletNode | null>(null);
+    const firstChunkRef      = useRef(true);
+    const silenceStartRef    = useRef<number | null>(null);
 
     // ── Viewport width ─────────────────────────────────────────────
     useEffect(() => {
@@ -239,6 +287,8 @@ export default function Record() {
         return () => {
             streamRef.current?.getTracks().forEach(t => t.stop());
             if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
+            wsRef.current?.close();
+            audioContextRef.current?.close().catch(() => {});
         };
     }, []);
 
@@ -280,12 +330,110 @@ export default function Record() {
     const startRecording = () => {
         if (!streamRef.current) return;
         recordedChunksRef.current = [];
-        const recorder = new MediaRecorder(streamRef.current);
+        const { mime } = pickAudioFormat();
+        const recorder = new MediaRecorder(streamRef.current, mime ? { mimeType: mime } : undefined);
         recorder.ondataavailable = (e) => {
             if (e.data.size > 0) recordedChunksRef.current.push(e.data);
         };
         mediaRecorderRef.current = recorder;
         recorder.start(1000);
+    };
+
+    // ── Live transcription (display-only, best-effort) ─────────────
+    // Streams PCM to Munsit's WS for on-screen text while speaking; the final
+    // transcript always comes from the REST upload in stopAndTranscribe().
+    const setupAudio = async () => {
+        if (!streamRef.current || audioContextRef.current) return;
+        const ctx = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = ctx;
+        const blobUrl = URL.createObjectURL(new Blob([PCM_PROCESSOR], { type: 'application/javascript' }));
+        await ctx.audioWorklet.addModule(blobUrl);
+        URL.revokeObjectURL(blobUrl);
+        const source = ctx.createMediaStreamSource(streamRef.current);
+        const worklet = new AudioWorkletNode(ctx, 'pcm-processor');
+        sourceNodeRef.current = source;
+        workletNodeRef.current = worklet;
+
+        // Munsit expects payloads roughly every second (16 000 samples × 2 bytes)
+        const SEND_EVERY = 16000 * 2;
+        let accumBuf: Uint8Array[] = [];
+        let accumBytes = 0;
+
+        worklet.port.onmessage = (e: MessageEvent) => {
+            if (pausedRef.current) return;
+            const pcm = e.data.pcm as ArrayBuffer;
+
+            // Long-pause detection (RMS) — feeds the analysis metadata
+            const samples = new Int16Array(pcm);
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i++) sumSq += samples[i] * samples[i];
+            const rms = Math.sqrt(sumSq / samples.length);
+            const now = Date.now();
+            if (rms < 800) {
+                if (silenceStartRef.current === null) silenceStartRef.current = now;
+                else if (now - silenceStartRef.current >= 1500) {
+                    longPausesRef.current += 1;
+                    silenceStartRef.current = null;
+                }
+            } else {
+                silenceStartRef.current = null;
+            }
+
+            const ws = wsRef.current;
+            if (ws?.readyState !== WebSocket.OPEN) return;
+            accumBuf.push(new Uint8Array(pcm));
+            accumBytes += pcm.byteLength;
+            if (accumBytes < SEND_EVERY) return;
+            const combined = new Uint8Array((firstChunkRef.current ? 44 : 0) + accumBytes);
+            let offset = 0;
+            if (firstChunkRef.current) {
+                firstChunkRef.current = false;
+                combined.set(makeWavHeader(16000, accumBytes), 0);
+                offset = 44;
+            }
+            for (const chunk of accumBuf) { combined.set(chunk, offset); offset += chunk.length; }
+            accumBuf = [];
+            accumBytes = 0;
+            ws.send(JSON.stringify({ event: 'audio_chunk', data: { audioBuffer: Array.from(combined) } }));
+        };
+        source.connect(worklet);
+        worklet.connect(ctx.destination);
+    };
+
+    const connectLive = async () => {
+        try {
+            await setupAudio();
+            const res = await fetch('/api/realtime-session', { method: 'POST' });
+            if (!res.ok) return;
+            const { token } = await res.json();
+            if (!token) return;
+            firstChunkRef.current = true;
+            const ws = new WebSocket(
+                `wss://api.munsit.com/api/v1/websocket/speech-to-text?x-api-key=${encodeURIComponent(token)}&model=munsit`,
+            );
+            wsRef.current = ws;
+            ws.onmessage = (e: MessageEvent) => {
+                try {
+                    const ev = JSON.parse(e.data);
+                    // data is the cumulative transcript of everything streamed so far
+                    if (ev.event === 'transcription' && typeof ev.data === 'string') setTranscript(ev.data);
+                } catch { /* ignore non-JSON frames */ }
+            };
+            ws.onclose = () => { wsRef.current = null; };
+        } catch { /* live text is optional; REST still delivers the final transcript */ }
+    };
+
+    const stopLive = () => {
+        firstChunkRef.current = true;
+        silenceStartRef.current = null;
+        wsRef.current?.close();
+        wsRef.current = null;
+        sourceNodeRef.current?.disconnect();
+        workletNodeRef.current?.disconnect();
+        audioContextRef.current?.close().catch(() => {});
+        sourceNodeRef.current = null;
+        workletNodeRef.current = null;
+        audioContextRef.current = null;
     };
 
     const runAnalysis = async (text: string) => {
@@ -312,9 +460,11 @@ export default function Record() {
                 recorder.stop();
             });
         }
+        stopLive();
         streamRef.current?.getTracks().forEach(t => t.stop());
 
-        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const { mime, ext } = pickAudioFormat();
+        const blob = new Blob(recordedChunksRef.current, { type: mime ?? 'audio/webm' });
         recordedChunksRef.current = [];
 
         if (blob.size === 0) { await runAnalysis(''); return; }
@@ -322,7 +472,7 @@ export default function Record() {
         setTranscribing(true);
         try {
             const formData = new FormData();
-            formData.append('audio', blob, 'recording.webm');
+            formData.append('audio', blob, `recording.${ext}`);
             const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
             if (!res.ok) throw new Error('transcription failed');
             const { transcript } = await res.json();
@@ -340,8 +490,10 @@ export default function Record() {
             if (!mediaRecorderRef.current) {
                 pausedRef.current = false;
                 longPausesRef.current = 0;
+                silenceStartRef.current = null;
                 setTranscript('');
                 startRecording();
+                connectLive();
             } else {
                 pausedRef.current = false;
                 if (mediaRecorderRef.current.state === 'paused') mediaRecorderRef.current.resume();
@@ -369,6 +521,7 @@ export default function Record() {
         setRunning(false);
         clearInterval(tickRef.current!);
         pausedRef.current = true;
+        stopLive();
         if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current?.stop();
         mediaRecorderRef.current = null;
         recordedChunksRef.current = [];

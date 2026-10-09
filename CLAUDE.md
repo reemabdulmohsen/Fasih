@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Fasih (فصيح)** is an AI-powered Arabic speaking coach. Users practice speaking on random topics for a timed session, receive real-time transcription via GPT-4o Realtime, then see a feedback report with fluency/grammar/vocabulary scores, a diff of corrections, and follow-up questions.
+**Fasih (فصيح)** is an AI-powered Arabic speaking coach. Users practice speaking on random topics for a timed session, receive real-time transcription via Munsit STT, then see a feedback report with fluency/grammar/vocabulary scores, a diff of corrections, and follow-up questions.
 
 ## Tech Stack
 
 - **Backend**: Laravel 11 (PHP 8.2+) with Inertia.js
 - **Frontend**: React 18 + TypeScript, bundled by Vite
 - **Styling**: Tailwind CSS + CSS custom properties (design tokens in `resources/css/app.css`)
-- **AI**: OpenAI GPT-4o Realtime API (WebSocket) for live transcription; Whisper-1 fallback via `/api/transcribe`
+- **AI**: Munsit STT (REST for the final transcript, WebSocket for live on-screen text); OpenAI `gpt-4o` for the feedback analysis via `/api/analyze`
 
 ## Commands
 
@@ -62,17 +62,18 @@ php artisan test --filter TestName      # Run a single test
 
 ### Recording Pipeline (`Record.tsx`)
 
-1. Calls `POST /api/realtime-session` → `RealtimeSessionController` creates an OpenAI ephemeral token
-2. Browser opens a WebSocket directly to `wss://api.openai.com/v1/realtime` using the ephemeral `client_secret` as a subprotocol (avoids exposing the main API key)
-3. An `AudioWorklet` (`pcm-processor`) captures microphone audio, converts Float32 to Int16 PCM, and streams base64-encoded chunks via `input_audio_buffer.append` messages
-4. Transcription deltas (`conversation.item.input_audio_transcription.delta`) accumulate per `item_id` in a `Map` and render live
-5. On finish, `input_audio_buffer.commit` is sent; the WS stays open 3 s to receive the final transcription event
-6. If mic is unavailable, the page falls back to a manual textarea
+Two independent audio paths run off the same `MediaStream`:
+
+1. **REST (authoritative)** — `MediaRecorder` records the full session (`audio/webm` on Chrome/Firefox, `audio/mp4` → `.m4a` on Safari; the container label must match the bytes or Munsit returns an empty transcription). On finish the blob is POSTed to `/api/transcribe`, and the returned transcript feeds `/api/analyze`.
+2. **Live streaming (display-only, best-effort)** — an `AudioWorklet` (`pcm-processor`) converts mic audio to Int16 PCM @16 kHz; ~1 s batches (first chunk prefixed with WAV headers) are sent as `{event: "audio_chunk", data: {audioBuffer: [...]}}` over `wss://api.munsit.com/api/v1/websocket/speech-to-text`. Incoming `{event: "transcription"}` events carry the cumulative transcript and render live. Any WS failure degrades silently — the REST path is unaffected. This worklet also does RMS-based long-pause detection for the analysis metadata.
+
+If mic is unavailable, the page falls back to a manual textarea.
 
 ### Backend Controllers
 
-- `RealtimeSessionController` — single-action, creates an OpenAI Realtime session and returns the ephemeral `client_secret`
-- `TranscribeController` — single-action, accepts an audio file upload, calls Whisper-1, returns transcript text
+- `RealtimeSessionController` — single-action, returns the Munsit API key for the browser's live-streaming WebSocket (Munsit has no ephemeral tokens)
+- `TranscribeController` — single-action, accepts an audio file upload, forwards it to Munsit's REST transcriber, returns transcript text
+- `AnalyzeController` — single-action, sends the transcript to OpenAI `gpt-4o` and returns the structured feedback report
 
 ### Frontend Structure
 
@@ -98,9 +99,10 @@ Use CSS variables for all styling; avoid hardcoding colour values.
 
 ## Environment
 
-Requires `OPENAI_API_KEY` in `.env`, exposed to Laravel via `config/services.php`:
+Requires `OPENAI_API_KEY` (analysis) and `MUNSIT_API_KEY` (transcription) in `.env`, exposed to Laravel via `config/services.php`:
 ```php
-'openai' => ['key' => env('OPENAI_API_KEY')]
+'openai' => ['key' => env('OPENAI_API_KEY')],
+'munsit' => ['key' => env('MUNSIT_API_KEY')],
 ```
 
 The frontend path alias `@` maps to `resources/js/`.
